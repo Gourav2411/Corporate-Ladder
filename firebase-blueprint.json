@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Challenge": {
+      "title": "Multiplayer Challenge",
+      "description": "A challenge created by a user for others to compete against their score.",
+      "type": "object",
+      "properties": {
+        "creatorId": { "type": "string" },
+        "creatorName": { "type": "string" },
+        "targetScore": { "type": "number" },
+        "gameMode": { "type": "string" },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["creatorId", "creatorName", "targetScore", "gameMode", "createdAt"]
+    },
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Public profile and highest scores for a user.",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string", "description": "User's display name" },
+        "createdAt": { "type": "timestamp" },
+        "highestScoreEndless": { "type": "number" },
+        "highestScoreChampionship": { "type": "number" },
+        "lifetimeSynergy": { "type": "number" },
+        "unlockedSkills": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["displayName"]
+    },
+    "LeaderboardEntry": {
+      "title": "Leaderboard Entry",
+      "description": "An entry representing a completed corporate sprint or endless run score.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "displayName": { "type": "string" },
+        "score": { "type": "number" },
+        "mode": { "type": "string" },
+        "timestamp": { "type": "timestamp" }
+      },
+      "required": ["userId", "displayName", "score", "mode", "timestamp"]
+    },
+    "MultiplayerRoom": {
+      "title": "Multiplayer Room",
+      "description": "Live real-time lobby for WiFi/Link multiplayer matches.",
+      "type": "object",
+      "properties": {
+        "hostId": { "type": "string" },
+        "status": { "type": "string", "description": "'waiting', 'playing', 'finished'" },
+        "gameMode": { "type": "string" },
+        "players": {
+          "type": "object",
+          "description": "Map of uid to player state"
+        },
+        "createdAt": { "type": "timestamp" }
+      },
+      "required": ["hostId", "status", "gameMode"]
+    }
+  },
+  "firestore": {
+    "challenges/{challengeId}": {
+      "schema": { "$ref": "#/entities/Challenge" },
+      "description": "Challenges sent by players to others."
+    },
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "User profile with their highest scores."
+    },
+    "leaderboards/{mode}/entries/{entryId}": {
+      "schema": { "$ref": "#/entities/LeaderboardEntry" },
+      "description": "Leaderboard entries for a specific game mode."
+    },
+    "multiplayer_rooms/{roomId}": {
+      "schema": { "$ref": "#/entities/MultiplayerRoom" },
+      "description": "Live multiplayer lobbies."
+    }
+  }
+}

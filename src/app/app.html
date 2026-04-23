@@ -1,0 +1,894 @@
+<div class="min-h-screen bg-[#050510] text-[#E2E8F0] font-sans flex flex-col selection:bg-cyan-500/30">
+  <header class="bg-[#050510]/90 backdrop-blur-md border-b border-cyan-500/30 flex items-center justify-between px-3 md:px-6 py-2 md:h-[70px] shrink-0 sticky top-0 z-50">
+    <div class="flex items-center gap-2 md:gap-4 shrink-0">
+      <h1 class="text-xl md:text-[20px] font-black title-display text-cyan-400 drop-shadow-[0_0_10px_rgba(6,182,212,0.5)]">
+        <span class="hidden md:inline">CORPORATE_LADDER_OS</span>
+        <span class="md:hidden">CORP<br/>LADDER</span>
+      </h1>
+    </div>
+    <div class="flex items-center gap-2 md:gap-4 justify-end">
+      @if (!fb.user()) {
+        <button (click)="fb.loginWithGoogle()" class="flex items-center gap-2 bg-[#0A0A15] hover:bg-[#151525] brutal-border px-3 md:px-4 py-2 rounded-none text-xs md:text-sm font-bold transition-all title-display">
+          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="w-4 h-4"/> <span class="hidden sm:inline">AUTH</span>
+        </button>
+      }
+      @if (fb.user(); as u) {
+         <button (click)="openLeaderboard('endless')" class="hidden sm:block text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors title-display">RANKINGS</button>
+         <button (click)="openAccount()" class="flex items-center gap-2 bg-[#0A0A15] brutal-border hover:bg-[#151525] pl-1 md:pl-2 pr-2 md:pr-4 py-1.5 rounded-none text-xs font-bold transition-all title-display mt-[2px] mb-[2px]">
+            <img [src]="u.photoURL || 'https://picsum.photos/seed/user/32/32'" alt="Avatar" referrerpolicy="no-referrer" class="w-5 h-5 md:w-5 md:h-5 border border-cyan-500"/>
+            <span class="hidden sm:inline truncate max-w-[80px] text-cyan-50">{{ u.displayName }}</span>
+         </button>
+      }
+
+      <div class="hidden sm:block bg-cyan-900/20 text-cyan-300 border border-cyan-500/50 data-mono text-xs px-2 py-1 uppercase shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+        {{ currentTitle() }}
+      </div>
+      
+      <!-- Monitization Tip Jar in Header -->
+      <button (click)="bribeTheDev()" class="flex items-center gap-1 md:gap-2 bg-[#0A0A15] border border-emerald-500/50 hover:border-emerald-400 hover:bg-emerald-900/20 px-2 md:px-4 py-1 md:py-1 rounded-none text-[10px] md:text-xs font-black text-emerald-500 cursor-pointer transition-all ml-2 title-display" title="Cost: 10,000 Synergy">
+         <span>💎</span> <span class="hidden sm:inline">BRIBE_HR</span>
+      </button>
+
+    </div>
+  </header>
+
+  <main class="flex-1 w-full max-w-[1400px] mx-auto p-2 md:p-4 flex flex-col gap-3 md:gap-4">
+    
+    <!-- TOP HUD: Stats & Legends -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4">
+      <!-- Synergy Profile -->
+      <div class="premium-panel rounded-none p-2 md:p-4 flex items-center gap-2 md:gap-4 relative overflow-hidden group">
+         <div class="absolute inset-0 bg-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+         <div class="w-8 h-8 md:w-12 md:h-12 shrink-0 bg-[#050510] border border-cyan-400 flex items-center justify-center text-lg md:text-[24px] shadow-[0_0_15px_rgba(6,182,212,0.3)] z-10">👔</div>
+         <div class="z-10 min-w-0">
+            <div class="text-[8px] md:text-[10px] title-display text-cyan-500/70 truncate">{{ currentTitle() }}</div>
+            <div class="text-[14px] md:text-[20px] font-black text-white leading-tight truncate title-display">SYN: <span class="text-cyan-400 shadow-cyan-400/50" style="text-shadow: 0 0 10px rgba(34, 211, 238, 0.4);">{{ synergy() }}</span></div>
+         </div>
+      </div>
+
+      <!-- The Ladder -->
+      <div class="premium-panel rounded-none p-2 md:p-4 flex flex-col justify-center gap-1 md:gap-1.5 relative overflow-hidden">
+         <div class="text-[8px] md:text-[10px] title-display text-slate-400 z-10">LEVEL_PROGRESS</div>
+         <div class="h-3 md:h-4 bg-[#050510] border border-slate-700 overflow-hidden flex items-center relative z-10">
+            <div class="h-full bg-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.8)] transition-all duration-500" 
+                 [style.width.%]="progressToNextLevel()"></div>
+            <div class="absolute inset-0 flex justify-between items-center px-1.5 md:px-2 text-[8px] md:text-[10px] data-mono text-white text-shadow-sm mix-blend-difference">
+               <span>{{ progressToNextLevel() }}%</span>
+            </div>
+         </div>
+      </div>
+
+      <!-- Busy-ness Factor -->
+      <div class="premium-panel rounded-none p-2 md:p-4 flex flex-col relative overflow-hidden border-rose-500/20">
+         <div class="absolute right-0 top-0 bottom-0 w-16 md:w-24 bg-gradient-to-l from-rose-900/20 to-transparent pointer-events-none"></div>
+         <span class="text-[8px] md:text-[10px] title-display text-rose-500/70 mb-0.5 md:mb-1 z-10 truncate">SYS_LOAD</span>
+         <span class="text-[18px] md:text-[28px] data-mono text-rose-500 leading-none drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] z-10 block">{{ busyness() }}%</span>
+      </div>
+
+      <!-- Team Morale -->
+      <div class="premium-panel rounded-none p-2 md:p-4 flex flex-col relative overflow-hidden border-emerald-500/20">
+         <div class="absolute right-0 top-0 bottom-0 w-16 md:w-24 bg-gradient-to-l from-emerald-900/20 to-transparent pointer-events-none"></div>
+         <span class="text-[8px] md:text-[10px] title-display text-emerald-500/70 mb-0.5 md:mb-1 z-10 truncate">MORALE_IDX</span>
+         <span class="text-[18px] md:text-[28px] data-mono text-emerald-400 leading-none drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] z-10">{{ teamMorale() }}%</span>
+      </div>
+    </div>
+
+    <!-- MAIN GAME CANVAS (Maximum Real Estate) -->
+    <div class="bg-[#050510] border border-cyan-500/30 rounded-none shadow-[0_0_30px_rgba(6,182,212,0.1)] relative focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full flex flex-col overflow-hidden premium-panel" tabindex="0" (keydown.space)="$event.preventDefault(); jump()">
+       
+       <!-- Game Header Info -->
+       <div class="flex flex-col md:flex-row justify-between items-center px-4 md:px-5 py-2 md:py-3 border-b border-cyan-500/20 relative gap-2 md:gap-0">
+          <!-- Live Room HUD overlay in header -->
+          @if (activeRoom()) {
+             <div class="absolute inset-0 bg-gradient-to-r from-fuchsia-900/30 to-purple-900/10 pointer-events-none"></div>
+          }
+          
+          <div class="text-[10px] md:text-[11px] text-cyan-400 font-bold uppercase tracking-widest flex items-center gap-2 md:gap-3 relative z-10 w-full md:w-auto justify-between md:justify-start data-mono">
+             <span class="flex items-center gap-1.5 flex-1 md:flex-none">
+                <div class="w-2 h-2 rounded-none animate-pulse shrink-0" [ngClass]="activeRoom() ? 'bg-fuchsia-500 shadow-[0_0_8px_#d946ef]' : 'bg-cyan-500'"></div> 
+                <span class="truncate">{{ activeRoom() ? 'LIVE_MULTIPLAYER_SECURE' : 'OFFLINE_ENDLESS_GRIND' }}</span>
+             </span>
+             <div class="flex items-center gap-1 md:gap-2 shrink-0">
+               <button (click)="togglePause(); $event.stopPropagation();" class="bg-[#0A0A15] border border-slate-700 hover:border-cyan-500 rounded-none px-2 md:px-3 py-1 text-white transition-all outline-none">
+                  {{ isPaused ? '▶ RESUME_OPS' : '⏸ HALT_OPS' }}
+               </button>
+               @if (gameState() === 'playing') {
+                  <button (click)="retire(); $event.stopPropagation();" class="bg-[#0A0A15] border border-rose-500/50 hover:bg-rose-900/30 hover:border-rose-400 text-rose-400 rounded-none px-2 md:px-3 py-1 transition-all outline-none">
+                     🪂 EMERGENCY_BAIL
+                  </button>
+               }
+             </div>
+          </div>
+          
+          <div class="flex items-center gap-2 md:gap-4 relative z-10 w-full md:w-auto justify-between md:justify-end hidden md:flex">
+             @if (activeRoom() && gameState() === 'playing') {
+               <!-- Mini Live Scoreboard -->
+               <div class="flex gap-4 border-r border-fuchsia-500/30 pr-4">
+                 @for (p of $any(activeRoom()?.players | keyvalue); track p.key) {
+                   <div class="flex flex-col text-right">
+                     <span class="text-[9px] uppercase font-bold data-mono" [ngClass]="p.value.uid === fb.user()?.uid ? 'text-fuchsia-300' : 'text-slate-400'">{{ p.value.name | slice:0:10 }}</span>
+                     <span class="text-xs font-black data-mono" [ngClass]="p.value.status === 'gameover' ? 'text-red-500 line-through' : 'text-cyan-50'">{{ p.value.score | number }}</span>
+                   </div>
+                 }
+               </div>
+             }
+             <div class="text-[11px] bg-[#0A0A15] px-3 py-1.5 rounded-none border border-slate-700 text-slate-300 font-bold data-mono mix-blend-screen">
+                <span class="text-cyan-400">SPC:</span> <span class="opacity-80">Jump</span> <span class="mx-2 text-slate-600">|</span> 
+                <span class="text-purple-400">E:</span> <span class="opacity-80">Synergize</span> <span class="mx-2 text-slate-600">|</span> 
+                <span class="text-fuchsia-400">F:</span> <span class="opacity-80">Fire</span> <span class="mx-2 text-slate-600">|</span> 
+                <span class="text-blue-400">C:</span> <span class="opacity-80">Coffee</span>
+                @if (hasSkill('action_gaslight')) {
+                   <span class="mx-2 text-slate-600">|</span> <span class="text-rose-400">G:</span> <span class="opacity-80">Gaslight</span>
+                }
+             </div>
+          </div>
+       </div>
+
+       <!-- The Canvas -->
+       <div class="w-full h-[60vh] md:h-[500px] min-h-[350px] max-h-[500px] bg-[#03030A] relative cursor-pointer group flex-shrink-0 border-t border-cyan-500/10" (mousedown)="onCanvasClick($event)" (touchstart)="onCanvasClick($event)" (mouseup)="stopJump()" (touchend)="stopJump()">
+          <canvas #gameCanvas width="1400" height="500" class="w-full h-full object-cover object-left mix-blend-screen"></canvas>
+          
+          <!-- Crunch Time Overlay -->
+          @if (isCrunchTime) {
+             <div class="absolute inset-0 z-30 pointer-events-none flex items-start justify-center pt-10">
+                <div class="bg-red-500/10 border-t border-b border-red-500 w-full h-full absolute inset-0 animate-pulse mix-blend-screen"></div>
+                <div class="text-3xl md:text-5xl font-black text-rose-500 bg-[#050510] backdrop-blur px-8 py-3 rounded-none border border-red-500 drop-shadow-[4px_4px_0_#EF4444] animate-pulse z-40 transform scale-110 title-display box-shadow-none">
+                   {{ crunchText }}
+                </div>
+             </div>
+          }
+
+          <!-- Sabotage Overlay -->
+          @if (sabotageText) {
+             <div class="absolute inset-0 z-40 bg-red-900/40 backdrop-blur-sm flex items-center justify-center flex-col pointer-events-none animate-fade-in border border-red-500/50">
+                <div class="text-4xl md:text-6xl font-black text-red-500 drop-shadow-[4px_4px_0_#EF4444] animate-bounce text-center px-4 title-display">
+                   {{ sabotageText }}
+                </div>
+                <div class="text-xl md:text-2xl text-white font-bold opacity-80 mt-4 data-mono bg-black px-4 py-1">SYS_FROZEN</div>
+             </div>
+          }
+
+          <!-- Sabotage Menu -->
+          @if (activeRoom() && gameState() === 'playing') {
+             <div class="absolute right-2 md:right-4 top-2 md:top-4 z-20 flex flex-col gap-1.5 md:gap-2 w-[140px] md:w-auto md:max-w-[200px]">
+                <div class="text-[8px] md:text-[10px] text-fuchsia-400 font-bold uppercase tracking-widest text-right mb-0.5 md:mb-1 select-none data-mono bg-black px-2 py-1 outline-text outline-1">SABOTAGE_TARGETS</div>
+                @for (p of $any(activeRoom()?.players | keyvalue); track p.key) {
+                   @if (p.value.uid !== fb.user()?.uid && p.value.status === 'playing') {
+                      <div class="bg-[#050510]/95 backdrop-blur border border-fuchsia-500/30 rounded-none p-1.5 md:p-2 shadow-none flex flex-col gap-1 md:gap-2">
+                         <div class="text-[10px] md:text-xs font-bold text-white truncate data-mono">{{ p.value.name }}</div>
+                         <div class="flex gap-1" title="Cost: Synergy">
+                            <button (click)="$event.stopPropagation(); executeSabotage(p.value.uid, 'email_wall', 500)" 
+                                    class="flex-1 bg-[#0A0A15] hover:bg-cyan-900/30 border border-slate-700 hover:border-cyan-500 text-[8px] md:text-[9px] font-bold py-1 md:py-1.5 rounded-none transition-all text-cyan-300 disabled:opacity-30 disabled:hover:bg-[#0A0A15] disabled:hover:border-slate-700 disabled:cursor-not-allowed uppercase data-mono"
+                                    [disabled]="synergy() < 500">
+                               WALL<br/>[500]
+                            </button>
+                            <button (click)="$event.stopPropagation(); executeSabotage(p.value.uid, 'freeze', 1000)" 
+                                    class="flex-1 bg-[#0A0A15] hover:bg-fuchsia-900/30 border border-slate-700 hover:border-fuchsia-500 text-[8px] md:text-[9px] font-bold py-1 md:py-1.5 rounded-none transition-all text-fuchsia-300 disabled:opacity-30 disabled:hover:bg-[#0A0A15] disabled:hover:border-slate-700 disabled:cursor-not-allowed uppercase data-mono"
+                                    [disabled]="synergy() < 1000">
+                               LOCK<br/>[1k]
+                            </button>
+                         </div>
+                      </div>
+                   }
+                }
+             </div>
+          }
+
+          <!-- Mobile On-Screen Controls -->
+          @if (gameState() === 'playing') {
+             <div class="absolute inset-x-0 bottom-0 pb-6 px-4 z-40 flex items-end justify-between md:hidden pointer-events-none" style="padding-bottom: max(1.5rem, env(safe-area-inset-bottom));">
+                <!-- Jump button moved to left for easier thumb separation or bottom center, wait, right-bottom corner vs left-bottom corner -->
+                <div class="pointer-events-auto flex flex-wrap gap-2 max-w-[200px] items-end">
+                   <!-- Left Side: Utilities -->
+                   <button (mousedown)="$event.stopPropagation(); firePinkSlip()" (touchstart)="$event.stopPropagation(); firePinkSlip()" class="bg-[#050510] border-2 border-fuchsia-500 rounded-none w-14 h-14 flex items-center justify-center text-3xl shadow-[4px_4px_0_#d946ef] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#d946ef] transition-all backdrop-blur text-white font-bold pb-1 pointer-events-auto touch-manipulation webkit-touch-callout-none user-select-none shrink-0 mb-1">
+                      🔥
+                   </button>
+                   <button (mousedown)="$event.stopPropagation(); clearClosestEmail()" (touchstart)="$event.stopPropagation(); clearClosestEmail()" class="bg-[#050510] border-2 border-purple-500 rounded-none w-14 h-14 flex items-center justify-center text-3xl shadow-[4px_4px_0_#a855f7] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#a855f7] transition-all backdrop-blur text-white font-bold pb-1 pointer-events-auto touch-manipulation webkit-touch-callout-none user-select-none shrink-0 mb-1">
+                      📧
+                   </button>
+                   <button (mousedown)="$event.stopPropagation(); quickCoffeeBreak()" (touchstart)="$event.stopPropagation(); quickCoffeeBreak()" class="bg-[#050510] border-2 border-blue-500 rounded-none w-12 h-12 flex items-center justify-center text-2xl shadow-[4px_4px_0_#3b82f6] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#3b82f6] transition-all backdrop-blur text-white font-bold pb-1 pointer-events-auto touch-manipulation webkit-touch-callout-none user-select-none shrink-0 mb-1">
+                      ☕
+                   </button>
+                   @if (hasSkill('action_gaslight')) {
+                      <button (mousedown)="$event.stopPropagation(); gaslightTeam()" (touchstart)="$event.stopPropagation(); gaslightTeam()" class="bg-[#050510] border-2 border-rose-500 rounded-none w-12 h-12 flex items-center justify-center text-2xl shadow-[4px_4px_0_#f43f5e] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#f43f5e] transition-all backdrop-blur text-white font-bold pb-1 pointer-events-auto touch-manipulation webkit-touch-callout-none user-select-none shrink-0 mb-1">
+                         🪄
+                      </button>
+                   }
+                </div>
+
+                <!-- Right Side: JUMP -->
+                <div class="pointer-events-auto flex items-end">
+                   <button (mousedown)="$event.stopPropagation(); jump()" (touchstart)="$event.stopPropagation(); jump()" (mouseup)="$event.stopPropagation(); stopJump()" (touchend)="$event.stopPropagation(); stopJump()" class="bg-[#050510] border-2 border-cyan-400 rounded-none w-14 h-14 flex items-center justify-center shadow-[4px_4px_0_#22d3ee] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0_#22d3ee] transition-all backdrop-blur pointer-events-auto select-none touch-manipulation webkit-touch-callout-none user-select-none shrink-0 mb-1">
+                      <span class="text-3xl mb-1">🦘</span>
+                   </button>
+                </div>
+             </div>
+          }
+
+          <!-- Overlays -->
+          @if (gameState() === 'tutorial') {
+             <div class="absolute inset-0 bg-[#060B14]/90 backdrop-blur-xl z-30 flex flex-col items-center justify-start md:justify-center text-center p-4 md:p-8 border border-indigo-500/30 overflow-y-auto">
+               <div class="bg-[#0A101D] border border-cyan-500/40 p-4 md:p-8 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.2)] max-w-xl w-full m-auto shrink-0 flex flex-col">
+                  <h2 class="text-xl md:text-3xl font-black text-cyan-400 mb-2 uppercase tracking-widest leading-tight">Employee Orientation</h2>
+                  <div class="h-1 w-20 bg-gradient-to-r from-cyan-400 to-purple-500 mx-auto mb-4 md:mb-6 rounded-full shrink-0"></div>
+                  
+                  <div class="text-slate-300 text-sm md:text-lg leading-relaxed mb-6 md:mb-8 min-h-[100px] md:min-h-[120px] flex items-center justify-center shrink-0">
+                     @if (tutorialStep() === 1) {
+                         <p>Welcome to the <strong>Corporate Ladder</strong>.<br/><br/>Your goal is to gain <span class="text-cyan-400 font-bold">Synergy</span> and climb to the top.<br/><br/>Press <kbd class="bg-indigo-900/50 border border-indigo-400 text-indigo-300 px-2 py-1 rounded font-mono text-xs md:text-sm mx-1">SPACE</kbd> or tap the screen to <strong>jump</strong> over hurdles like Red Tape.</p>
+                     }
+                     @if (tutorialStep() === 2) {
+                         <p>See an <strong>Urgent Email 📧</strong>?<br/><br/>Don't jump over it! Walk into it and press <kbd class="bg-indigo-900/50 border border-indigo-400 text-indigo-300 px-2 py-1 rounded font-mono text-xs md:text-sm mx-1">E</kbd> or tap the 📧 button to <span class="text-purple-400 font-bold">Synergize</span> it.<br/><br/>This dramatically boosts your Synergy multipliers.</p>
+                     }
+                     @if (tutorialStep() === 3) {
+                         <p>Is there a team member doing actual work (💻/📈)?<br/><br/>They are ruining the vibe. Press <kbd class="bg-indigo-900/50 border border-indigo-400 text-indigo-300 px-2 py-1 rounded font-mono text-xs md:text-sm mx-1">F</kbd> or tap 🔥 to launch a <span class="text-fuchsia-400 font-bold">Pink Slip</span> and <strong class="text-red-400">🔥 FIRE THEM</strong>.<br/><br/>Doing so nets huge combos and protects your 'Culture'.</p>
+                     }
+                  </div>
+
+                  <div class="flex justify-between items-center w-full mt-auto shrink-0">
+                     <div class="flex gap-2">
+                        <div class="w-2.5 h-2.5 rounded-full" [ngClass]="tutorialStep() === 1 ? 'bg-cyan-400' : 'bg-slate-700'"></div>
+                        <div class="w-2.5 h-2.5 rounded-full" [ngClass]="tutorialStep() === 2 ? 'bg-cyan-400' : 'bg-slate-700'"></div>
+                        <div class="w-2.5 h-2.5 rounded-full" [ngClass]="tutorialStep() === 3 ? 'bg-cyan-400' : 'bg-slate-700'"></div>
+                     </div>
+                     <div class="flex gap-4">
+                        <button (click)="finishTutorial(); $event.stopPropagation()" class="text-slate-400 hover:text-white px-4 py-2 font-bold transition-colors">Skip</button>
+                        <button (click)="nextTutorialStep(); $event.stopPropagation()" class="bg-gradient-to-r from-cyan-600 to-blue-700 text-white rounded-xl px-6 py-2 font-bold shadow-[0_0_15px_rgba(6,182,212,0.4)] hover:scale-105 transition-all outline-none">
+                           {{ tutorialStep() === 3 ? "Let's Synergize!" : "Next" }}
+                        </button>
+                     </div>
+                  </div>
+               </div>
+             </div>
+          }
+
+          @if (gameState() === 'menu') {
+            <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur z-20 flex flex-col items-center justify-start text-center p-4 overflow-y-auto custom-scrollbar border-4 border-cyan-500/20">
+               <div class="w-full max-w-4xl m-auto shrink-0 flex flex-col items-center py-4">
+                 <h2 class="text-4xl md:text-[54px] font-black text-cyan-400 mb-2 title-display drop-shadow-[0_0_20px_rgba(6,182,212,0.4)] leading-tight outline-text">CORPORATE_LADDER_OS</h2>
+                 <p class="text-cyan-300 mb-6 md:mb-8 text-sm md:text-xl font-semibold data-mono uppercase tracking-[0.2em] opacity-80">Climb // Survive // Terminate</p>
+                 
+                 @if (fb.user()) {
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-2 md:mt-4 w-full">
+                       <button (click)="startGame('endless'); $event.stopPropagation()" class="p-3 md:py-4 bg-[#0A0A15] border border-cyan-500/50 text-cyan-400 rounded-none hover:bg-cyan-900/20 hover:border-cyan-400 hover:shadow-[inset_0_0_20px_rgba(6,182,212,0.2)] transition-all flex flex-col items-center group shrink-0">
+                          <span class="text-2xl md:text-3xl mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">📈</span>
+                          <span class="font-black title-display text-xs md:text-sm uppercase text-center">ENDLESS</span>
+                       </button>
+                       <button (click)="startGame('championship'); $event.stopPropagation()" class="p-3 md:py-4 bg-[#0A0A15] border border-purple-500/50 text-purple-400 rounded-none hover:bg-purple-900/20 hover:border-purple-400 hover:shadow-[inset_0_0_20px_rgba(168,85,247,0.2)] transition-all flex flex-col items-center group shrink-0">
+                          <span class="text-2xl md:text-3xl mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">⏱️</span>
+                          <span class="font-black title-display text-xs md:text-sm uppercase text-center">Q3_SPRINT</span>
+                       </button>
+                       <button (click)="startGame('takeover'); $event.stopPropagation()" class="p-3 md:py-4 bg-[#0A0A15] border border-red-500/50 text-red-400 rounded-none hover:bg-red-900/20 hover:border-red-400 hover:shadow-[inset_0_0_20px_rgba(239,68,68,0.2)] transition-all flex flex-col items-center group shrink-0">
+                          <span class="text-2xl md:text-3xl mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🦈</span>
+                          <span class="font-black title-display text-xs md:text-sm uppercase text-center">TAKEOVER</span>
+                       </button>
+                       <button (click)="startGame('quiet'); $event.stopPropagation()" class="p-3 md:py-4 bg-[#0A0A15] border border-emerald-500/50 text-emerald-400 rounded-none hover:bg-emerald-900/20 hover:border-emerald-400 hover:shadow-[inset_0_0_20px_rgba(16,185,129,0.2)] transition-all flex flex-col items-center group shrink-0">
+                          <span class="text-2xl md:text-3xl mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🧘</span>
+                          <span class="font-black title-display text-xs md:text-sm uppercase text-center">QUIET_QUIT</span>
+                       </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4 md:mt-6 w-full">
+                        <button (click)="openLeaderboard('global'); $event.stopPropagation()" class="px-4 md:px-6 py-3 md:py-4 bg-[#0A0A15] border border-amber-500/50 text-amber-500 rounded-none hover:bg-amber-900/20 hover:border-amber-400 hover:shadow-[inset_0_0_20px_rgba(245,158,11,0.2)] transition-all flex flex-col items-center group pointer-events-auto shrink-0">
+                           <span class="text-2xl md:text-3xl mb-1 md:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🌍</span>
+                           <span class="font-black title-display text-sm md:text-lg uppercase mb-1">GLOBAL_RANKS</span>
+                           <span class="text-[10px] md:text-xs data-mono text-amber-500/60">SYSTEM // LIFETIME</span>
+                        </button>
+                        <button (click)="gameState.set('multiplayer_lobby'); $event.stopPropagation()" class="px-4 md:px-6 py-3 md:py-4 bg-[#0A0A15] border border-fuchsia-500/50 text-fuchsia-500 rounded-none hover:bg-fuchsia-900/20 hover:border-fuchsia-400 hover:shadow-[inset_0_0_20px_rgba(217,70,239,0.2)] transition-all flex flex-col items-center group pointer-events-auto shrink-0">
+                           <span class="text-2xl md:text-3xl mb-1 md:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🌐</span>
+                           <span class="font-black title-display text-sm md:text-lg uppercase mb-1">NETWORK_MODE</span>
+                           <span class="text-[10px] md:text-xs data-mono text-fuchsia-500/60">LIVE // MULTIPLAYER // ROOMS</span>
+                        </button>
+                    </div>
+
+                    <div class="mt-6 md:mt-8 flex flex-col sm:flex-row gap-3 md:gap-4 w-full justify-center max-w-md md:max-w-none shrink-0">
+                       <button (click)="gameState.set('wardrobe'); $event.stopPropagation()" class="px-4 md:px-6 py-3 md:py-2 bg-[#1E293B]/80 text-cyan-300 border border-cyan-800/50 rounded-xl hover:bg-[#334155] hover:text-cyan-200 transition-colors uppercase text-xs md:text-sm font-bold tracking-widest flex items-center justify-center gap-2">
+                          <span>👔</span> Executive Restroom (Skins)
+                       </button>
+                       <button (click)="gameState.set('skills'); $event.stopPropagation()" class="px-4 md:px-6 py-3 md:py-2 bg-[#1E293B]/80 text-fuchsia-300 border border-fuchsia-800/50 rounded-xl hover:bg-[#334155] hover:text-fuchsia-200 transition-colors uppercase text-xs md:text-sm font-bold tracking-widest flex items-center justify-center gap-2">
+                          <span>🧠</span> Leadership Training (Skills)
+                       </button>
+                    </div>
+                 } @else {
+                    <div class="flex flex-col items-center justify-center p-4 md:p-8 mt-2 md:mt-4 bg-[#0F172A]/80 border border-blue-500/50 rounded-3xl shadow-[0_0_40px_rgba(59,130,246,0.2)] max-w-xl w-full shrink-0">
+                       <div class="text-4xl md:text-[50px] mb-2 md:mb-4">🔐</div>
+                       <h3 class="text-xl md:text-2xl font-black tracking-widest text-white uppercase mb-2 text-center leading-tight">Access Restricted</h3>
+                       <p class="text-slate-400 mb-6 md:mb-8 max-w-sm text-sm md:text-base text-center">You must be on the company payroll to start climbing the ladder or playing multiplayer.</p>
+                       <button (click)="fb.loginWithGoogle(); $event.stopPropagation()" class="flex items-center justify-center gap-2 md:gap-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-black px-6 md:px-8 py-3 md:py-4 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all uppercase tracking-widest text-base md:text-lg group w-full md:w-auto">
+                          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google Logo" class="w-5 h-5 md:w-6 md:h-6 bg-white rounded-full p-0.5 group-hover:scale-110 transition-transform"/> 
+                          Sign In & Play
+                       </button>
+                    </div>
+                 }
+               </div>
+            </div>
+          }
+
+          @if (gameState() === 'multiplayer_lobby') {
+            <div class="absolute inset-0 bg-[#060B14]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-start md:justify-center p-4 md:p-8 text-center animate-fade-in border border-fuchsia-500/30 overflow-y-auto">
+               <h2 class="text-3xl md:text-4xl font-black text-fuchsia-400 mb-2 uppercase tracking-widest flex items-center justify-center gap-2 md:gap-3 shrink-0"><span class="text-2xl md:text-3xl">🌐</span> Live Network</h2>
+               <p class="text-fuchsia-300/80 mb-6 md:mb-8 max-w-xl text-sm md:text-base shrink-0">Join a live room to race against friends on the same WiFi or via a Room Code. Scores will sync live.</p>
+
+               @if (!activeRoom()) {
+                  <div class="flex flex-col gap-4 md:gap-6 w-full max-w-md shrink-0">
+                     <div class="flex flex-col gap-2 text-left bg-[#0F172A] border border-fuchsia-500/30 p-4 rounded-xl">
+                        <label for="gameModeSelect" class="text-fuchsia-300 font-bold uppercase tracking-widest text-xs">Select Game Mode</label>
+                        <select id="gameModeSelect" (change)="hostSelectedMode.set($any($event.target).value)" class="bg-[#1E293B] border border-fuchsia-500/50 rounded-lg px-3 py-2 text-white font-bold tracking-wider outline-none focus:border-fuchsia-400">
+                           <option value="endless">Endless</option>
+                           <option value="championship">Q3 Sprint</option>
+                           <option value="takeover">Takeover</option>
+                           <option value="quiet">Quiet Quit</option>
+                        </select>
+                     </div>
+                     <button (click)="hostRoom(); $event.stopPropagation()" class="px-6 py-3 md:py-4 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] font-black text-lg md:text-xl uppercase tracking-wider transition-all">
+                        Host New Room
+                     </button>
+                     
+                     <div class="relative flex items-center">
+                        <div class="flex-grow border-t border-fuchsia-500/30"></div>
+                        <span class="flex-shrink-0 mx-4 text-fuchsia-500 font-bold text-sm">OR</span>
+                        <div class="flex-grow border-t border-fuchsia-500/30"></div>
+                     </div>
+
+                     <div class="flex gap-2">
+                        <input type="text" [value]="joinCodeInput()" (input)="joinCodeInput.set($any($event.target).value)" placeholder="Enter 4-Letter Code" class="flex-1 w-0 bg-[#0F172A] border border-fuchsia-500/50 rounded-xl px-2 md:px-4 py-2 md:py-3 text-white font-black text-center uppercase tracking-widest outline-none focus:border-fuchsia-400 min-w-0" maxlength="4" />
+                        <button (click)="joinRoom(); $event.stopPropagation()" class="px-4 md:px-6 py-2 md:py-3 bg-[#1E293B] hover:bg-[#334155] border border-fuchsia-500/50 text-fuchsia-300 rounded-xl font-bold uppercase transition-all shrink-0">
+                           Join
+                        </button>
+                     </div>
+                  </div>
+               } @else {
+                  <div class="w-full max-w-md bg-[#0F172A] border-2 border-fuchsia-500/50 rounded-2xl p-4 md:p-6 shadow-[0_0_30px_rgba(217,70,239,0.2)] shrink-0">
+                     <div class="text-slate-400 font-bold uppercase tracking-widest text-[10px] md:text-xs mb-1">Room Code</div>
+                     <div class="text-4xl md:text-5xl font-black text-white tracking-[0.2em] mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{{ activeRoom()?.roomId }}</div>
+                     
+                     <div class="mb-6 md:mb-8 flex items-center justify-center">
+                        <div class="px-4 py-2 bg-gradient-to-r from-fuchsia-900/50 to-purple-900/50 border border-fuchsia-500/50 rounded-xl text-fuchsia-200 font-black uppercase tracking-widest shadow-[0_0_15px_rgba(217,70,239,0.3)] text-sm md:text-base flex items-center gap-2">
+                           <span>🎮</span> 
+                           {{ activeRoom()?.gameMode === 'championship' ? 'Q3 Sprint' : 
+                              activeRoom()?.gameMode === 'takeover' ? 'Takeover' : 
+                              activeRoom()?.gameMode === 'quiet' ? 'Quiet Quit' : 'Endless' }} Mode
+                        </div>
+                     </div>
+                     
+                     <div class="text-left mb-6 md:mb-8">
+                        <div class="text-fuchsia-400 font-bold uppercase tracking-widest text-xs md:text-sm mb-2 md:mb-3 border-b border-fuchsia-500/30 pb-2">Connected Executives</div>
+                        <div class="flex flex-col gap-2 max-h-[150px] overflow-y-auto custom-scrollbar pr-2">
+                           @for (p of $any(activeRoom()?.players | keyvalue); track p.key) {
+                              <div class="flex items-center justify-between bg-[#1E293B] px-3 md:px-4 py-2 md:py-3 rounded-xl border border-slate-700">
+                                 <span class="font-bold text-white text-sm truncate max-w-[120px]">{{ p.value.name }}</span>
+                                 <span class="text-[10px] md:text-xs font-black uppercase text-fuchsia-400 shrink-0" [ngClass]="p.value.uid === fb.user()?.uid ? 'animate-pulse' : ''">
+                                    {{ p.value.uid === fb.user()?.uid ? '(You)' : 'Ready' }}
+                                 </span>
+                              </div>
+                           }
+                        </div>
+                     </div>
+
+                     @if (activeRoom()?.hostId === fb.user()?.uid) {
+                        <button (click)="startHostedRoom(); $event.stopPropagation()" class="w-full py-3 md:py-4 bg-gradient-to-r from-fuchsia-600 to-purple-600 hover:from-fuchsia-500 hover:to-purple-500 text-white font-black text-lg md:text-xl rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.5)] transition-all uppercase tracking-wider">
+                           Start Match Sync 🚀
+                        </button>
+                     } @else {
+                        <div class="py-3 md:py-4 bg-[#1E293B] text-fuchsia-300 border border-fuchsia-500/30 rounded-xl font-bold uppercase tracking-widest animate-pulse text-sm md:text-base">
+                           Waiting for Host...
+                        </div>
+                     }
+                  </div>
+               }
+
+               <button (click)="leaveRoom(); $event.stopPropagation()" class="mt-6 md:mt-10 px-8 md:px-10 py-2.5 md:py-3 bg-slate-800 text-white rounded-full font-bold shadow-lg hover:bg-slate-700 transition-all outline-none uppercase tracking-wider text-xs md:text-sm border border-slate-600 shrink-0">
+                  Return to Lobby
+               </button>
+            </div>
+          }
+
+          @if (gameState() === 'wardrobe') {
+            <div class="absolute inset-0 bg-[#060B14]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-start p-8 text-center animate-fade-in border border-cyan-500/30 overflow-y-auto">
+               <h2 class="text-4xl font-black text-cyan-400 mb-2 uppercase tracking-widest flex items-center gap-3 mt-8"><span class="text-3xl">👔</span> The Wardrobe</h2>
+               <p class="text-slate-400 mb-8 max-w-xl">Change your corporate aesthetic. Some skins are unlocked by reaching higher management levels during any run.</p>
+               
+               <div class="grid grid-cols-2 gap-4 w-full max-w-3xl">
+                  @for (skin of availableSkins; track skin.id) {
+                     <button (click)="(levelIndex() >= skin.unlockLevel || highestLevelEver() >= skin.unlockLevel) ? selectSkin(skin.id) : null; $event.stopPropagation()"
+                             [class.opacity-50]="levelIndex() < skin.unlockLevel && highestLevelEver() < skin.unlockLevel"
+                             [class.bg-[#0F172A]]="playerSkin() !== skin.id"
+                             [class.border-slate-800]="playerSkin() !== skin.id"
+                             [class.bg-gradient-to-r]="playerSkin() === skin.id"
+                             [class.from-cyan-900]="playerSkin() === skin.id"
+                             [class.to-blue-900]="playerSkin() === skin.id"
+                             [class.border-cyan-400]="playerSkin() === skin.id"
+                             class="text-left p-4 rounded-xl border-2 transition-all relative overflow-hidden group">
+                        
+                        <div class="font-bold text-white text-lg mb-1">{{ skin.name }}</div>
+                        <div class="text-sm text-slate-400">{{ skin.desc }}</div>
+                        
+                        @if (levelIndex() < skin.unlockLevel && highestLevelEver() < skin.unlockLevel) {
+                           <div class="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center font-bold text-red-400 tracking-widest text-sm uppercase">
+                              🔒 Unlocks at Title Level {{ skin.unlockLevel }}
+                           </div>
+                        }
+
+                        @if (playerSkin() === skin.id) {
+                           <div class="absolute top-4 right-4 w-3 h-3 bg-cyan-400 rounded-full shadow-[0_0_10px_cyan]"></div>
+                        }
+                     </button>
+                  }
+               </div>
+
+               <button (click)="gameState.set('menu'); $event.stopPropagation()" class="mt-10 px-10 py-3 bg-slate-800 text-white rounded-full font-bold shadow-lg hover:bg-slate-700 transition-all outline-none uppercase tracking-wider text-sm border border-slate-600">
+                  Return to Lobby
+               </button>
+            </div>
+          }
+
+          @if (gameState() === 'story') {
+            <div class="absolute inset-0 bg-[#060B14]/95 backdrop-blur z-30 flex flex-col items-center justify-center p-8 text-white text-center border-y border-cyan-500/50 shadow-[0_0_50px_rgba(6,182,212,0.2)]">
+              <h2 class="text-3xl font-black text-cyan-400 mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]">{{ currentStoryNode()?.title }}</h2>
+              <p class="text-[20px] max-w-2xl italic mb-6 text-slate-300 leading-relaxed font-serif">"{{ currentStoryNode()?.text }}"</p>
+              <p class="text-[12px] text-purple-400 font-bold uppercase tracking-widest mb-10">- {{ currentStoryNode()?.boss }}</p>
+              <button (click)="resumeFromStory(); $event.stopPropagation()" class="px-10 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full font-black shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:scale-105 transition-all outline-none border border-cyan-300 text-lg uppercase tracking-wider">Accept Promotion</button>
+            </div>
+          }
+
+          @if (gameState() === 'gameover') {
+            <div class="absolute inset-0 bg-[#0A101D]/95 backdrop-blur-md z-50 overflow-y-auto w-full h-full animate-fade-in border border-indigo-500/30 p-4 custom-scrollbar">
+              <div class="min-h-full flex flex-col md:flex-row items-center justify-center m-auto max-w-6xl gap-8 py-8">
+                 
+                 <!-- The Shareable Card -->
+                 <div id="performance-review-card" class="bg-[#0F172A] rounded-2xl border-2 border-indigo-500/50 p-6 md:p-8 max-w-md w-full shadow-[0_0_40px_rgba(99,102,241,0.2)] text-left relative overflow-hidden shrink-0">
+                    <div class="absolute -right-8 -top-8 opacity-[0.03] text-[100px] font-black italic select-none pointer-events-none">SYNERGY</div>
+                    
+                    <div class="flex justify-between items-start mb-6 border-b border-indigo-500/30 pb-4 relative z-10">
+                       <div>
+                          <h3 class="font-black text-cyan-400 text-sm tracking-widest uppercase mb-1">Performance Review</h3>
+                          <h2 class="text-white text-2xl font-bold">{{ fb.user()?.displayName || 'Corporate Drone' }}</h2>
+                          <p class="text-indigo-300 text-sm font-medium">{{ currentTitle() }}</p>
+                       </div>
+                       <div class="text-right flex flex-col items-end">
+                          <div class="text-3xl mb-1">{{ gameOverReason.includes('FIRED') ? '🛑' : '🪂' }}</div>
+                          <div class="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full" 
+                               [ngClass]="gameOverReason.includes('FIRED') ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'">
+                             {{ gameOverReason.includes('FIRED') ? 'Terminated' : 'Retired' }}
+                          </div>
+                       </div>
+                    </div>
+                  
+                    <div class="mb-6 relative z-10">
+                       <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Final Metrics</div>
+                       <div class="flex gap-4">
+                          <div class="flex-1 bg-[#1E293B] rounded-lg p-3 border border-slate-700">
+                             <div class="text-xs text-slate-400 mb-1">Synergy Yield</div>
+                             <div class="text-emerald-400 font-black text-xl">+{{ synergy() }}</div>
+                          </div>
+                          <div class="flex-1 bg-[#1E293B] rounded-lg p-3 border border-slate-700">
+                             <div class="text-xs text-slate-400 mb-1">Emails Cleared</div>
+                             <div class="text-cyan-400 font-black text-xl">{{ emailsSynergized }}</div>
+                          </div>
+                       </div>
+                    </div>
+                  
+                    <div class="mb-6 relative z-10">
+                       <div class="text-[10px] text-slate-400 uppercase tracking-widest font-bold mb-2">Key Accomplishments</div>
+                       <ul class="text-sm text-slate-300 space-y-2">
+                          <li class="flex justify-between border-b border-slate-800 pb-1">
+                             <span>Doers Fired:</span> <span class="font-bold text-white">{{ doersFired }}</span>
+                          </li>
+                          <li class="flex justify-between border-b border-slate-800 pb-1">
+                             <span>Credit Taken:</span> <span class="font-bold text-white">{{ runStats['takeCredit'] || 0 }} times</span>
+                          </li>
+                          <li class="flex justify-between border-b border-slate-800 pb-1">
+                             <span>Meetings Scheduled:</span> <span class="font-bold text-white">{{ runStats['scheduleUselessMeeting'] || 0 }}</span>
+                          </li>
+                          <li class="flex justify-between">
+                             <span>Decks Eyeballed:</span> <span class="font-bold text-white">{{ runStats['stareAtDeck'] || 0 }}</span>
+                          </li>
+                       </ul>
+                    </div>
+                  
+                    <div class="mt-4 pt-4 border-t border-indigo-500/30 text-center relative z-10">
+                       <p class="text-xs text-slate-400 italic">"{{ linkedInPost.length > 50 ? (linkedInPost | slice:0:120) + '...' : linkedInPost }}"</p>
+                       
+                       <div class="mt-3 text-[10px] text-slate-400 flex flex-wrap justify-center gap-x-4 border-t border-slate-700/50 pt-2 w-full">
+                          <span class="text-white opacity-80 uppercase font-black tracking-widest block w-full mb-1">Play Corporate Ladder Simulator</span>
+                          <span class="flex items-center gap-1"><span class="text-emerald-400 font-bold">Try It:</span> corporate-ladder.web.app</span>
+                          <span class="flex items-center gap-1"><span class="text-[#0A66C2] font-bold">Creator:</span> in/gourav-kondadadi</span>
+                       </div>
+                    </div>
+                 </div>
+
+                 <!-- Action Buttons & Details -->
+                 <div class="flex flex-col gap-6 max-w-sm w-full">
+                    <div class="text-center md:text-left">
+                       <h2 class="text-white text-3xl md:text-[36px] font-black mb-2">{{ gameOverReason.includes('FIRED') ? 'YOU WERE FIRED' : 'RETIRED' }}</h2>
+                       <p class="text-slate-400 text-sm mb-6">{{ gameOverReason }}</p>
+                       
+                       <div class="bg-[#1E293B] p-4 rounded-xl border border-slate-700 mb-6 text-center md:text-left flex justify-between items-center">
+                          <div>
+                             <p class="text-emerald-400 font-bold tracking-widest mb-1 text-[10px] uppercase">Lifetime Synergy (+{{synergy()}})</p>
+                             <p class="text-white font-black text-2xl">{{ totalSynergy() + synergy() }}</p>
+                          </div>
+                          <button (click)="downloadReviewCard(); $event.stopPropagation()" class="flex items-center justify-center gap-1 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2 rounded-lg font-bold shadow-lg transition-all outline-none text-sm">
+                             <mat-icon style="font-size:16px; width:16px; height:16px;">download</mat-icon> Save Card
+                          </button>
+                       </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                       <button (click)="bribeTheDev(); $event.stopPropagation()" class="flex items-center justify-center gap-2 bg-slate-800 border border-slate-600 hover:border-emerald-500 hover:text-emerald-400 text-slate-400 px-5 py-2.5 rounded-xl font-black transition-all outline-none w-full mb-1 cursor-pointer" title="Cost: 10,000 Synergy">
+                          <span>💎</span> Bribe HR
+                       </button>
+                    
+                       <button (click)="shareToLinkedIn(); $event.stopPropagation()" class="flex items-center justify-center gap-2 bg-[#0A66C2] hover:bg-[#0A66C2]/80 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg transition-all outline-none w-full">
+                          <mat-icon style="font-size:18px; width:18px; height:18px;">work</mat-icon> Post to LinkedIn
+                       </button>
+                       <div class="flex gap-3">
+                         <button (click)="shareToTwitter(); $event.stopPropagation()" class="flex flex-1 items-center justify-center gap-2 bg-black hover:bg-black/80 text-white px-4 py-2.5 rounded-xl border border-slate-700 font-bold shadow-lg transition-all outline-none">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" class="w-4 h-4 fill-current"><g><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></g></svg>
+                            X
+                         </button>
+                         <button (click)="shareToSlack(); $event.stopPropagation()" class="flex flex-1 items-center justify-center gap-2 bg-[#4A154B] hover:bg-[#3E123E] text-white px-4 py-2.5 rounded-xl border border-[#3E123E] font-bold shadow-lg transition-all outline-none">
+                            Slack / Teams
+                         </button>
+                         <button (click)="copyForInstagram(); $event.stopPropagation()" class="flex flex-1 items-center justify-center gap-2 bg-gradient-to-tr from-yellow-500 via-pink-500 to-purple-600 text-white px-2 py-2.5 rounded-xl border border-pink-400 font-bold shadow-[0_0_15px_rgba(236,72,153,0.3)] hover:scale-105 transition-all outline-none hidden md:flex text-sm whitespace-nowrap">
+                            <mat-icon style="font-size:18px; width:18px; height:18px;">photo_camera</mat-icon> IG Story
+                         </button>
+                       </div>
+                    </div>
+                  
+                    <div class="bg-[#050510] border border-red-500/50 rounded-none p-4 shadow-none w-full mt-2 group relative overflow-hidden brutal-border">
+                     <div class="absolute inset-0 bg-red-500/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                     <h3 class="text-red-400 font-black mb-3 tracking-widest uppercase text-sm flex items-center gap-2 data-mono">
+                        <span>🚨</span> ISSUE_PIP_SEQUENCE
+                     </h3>
+                     @if (!challengeShareLink()) {
+                        <button (click)="generateChallengeLink(); $event.stopPropagation()" class="w-full py-3 bg-[#0A0A15] hover:bg-red-900/30 text-red-500 font-black rounded-none shadow-none transition-all uppercase tracking-widest text-xs outline-none border border-red-500 title-display">
+                           PUT_COWORKER_ON_PIP
+                        </button>
+                     } @else {
+                        <div class="flex items-center gap-2 font-mono text-[10px] md:text-xs tracking-tighter w-full">
+                           <input #pipInput type="text" readonly [value]="challengeShareLink()" class="flex-1 min-w-0 bg-black/50 text-red-300 px-3 py-2.5 rounded-none border border-red-500 outline-none data-mono">
+                           <button (click)="copyChallengeLink(pipInput); $event.stopPropagation()" class="bg-red-900/30 hover:bg-red-500 hover:text-white border border-red-500 text-red-500 px-3 py-2.5 rounded-none font-black shadow-none transition-all uppercase tracking-widest shrink-0 outline-none title-display">COPY</button>
+                        </div>
+                        <p class="text-[10px] leading-tight text-red-400 mt-2 font-medium data-mono">Link copies with a custom terminating sequence.</p>
+                     }
+                  </div>
+  
+                 <div class="flex flex-col gap-4 mt-2">
+                   <button (click)="startGame(gameMode()); $event.stopPropagation()" class="bg-[#050510] text-cyan-400 border border-cyan-400 w-full py-3 rounded-none font-black shadow-none hover:bg-cyan-400 hover:text-black transition-all outline-none text-lg title-display brutal-border">
+                      NEW_EXECUTIVE_JOB
+                   </button>
+                   <button (click)="gameState.set('menu'); isPaused = true; $event.stopPropagation()" class="bg-[#0A0A15] text-slate-400 border border-slate-700 w-full py-3 rounded-none font-black shadow-none hover:border-slate-500 hover:text-slate-200 transition-all outline-none text-lg title-display">
+                      RETURN_TO_SYSTEM
+                   </button>
+                 </div>
+                 
+                 </div> <!-- Close Action Buttons column -->
+              </div> <!-- Close md:flex-row -->
+            </div> <!-- Close overlay -->
+          }
+
+          @if (gameMode() === 'championship' && gameState() === 'playing') {
+            <div class="absolute top-4 right-4 bg-[#050510]/95 px-4 py-2 rounded-none border border-cyan-500/50 font-black text-2xl tracking-widest backdrop-blur data-mono" [ngClass]="{'text-rose-500 animate-pulse drop-shadow-[4px_4px_0_rgba(244,63,94,0.8)] border-rose-500': championshipTimeLeft() <= 10, 'text-cyan-400 drop-shadow-[2px_2px_0_rgba(6,182,212,0.8)]': championshipTimeLeft() > 10}">
+              {{ championshipTimeLeft() }}s
+            </div>
+          }
+
+          @if (gameState() === 'skills') {
+             <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-start p-8 overflow-y-auto animate-fade-in border-4 border-cyan-500/20">
+                <div class="w-full max-w-4xl flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                  <h1 class="text-4xl font-black text-cyan-400 tracking-widest uppercase flex items-center gap-3 title-display outline-text">LEADERSHIP_TRAINING</h1>
+                  <div class="text-2xl font-black flex items-center gap-2 text-cyan-400 bg-[#0A0A15] px-6 py-2 rounded-none brutal-border data-mono">
+                     <span class="text-[10px] text-slate-400 tracking-widest uppercase truncate max-w-[120px]">LIFETIME_SYN //</span>
+                     <span>{{totalSynergy() | number}}</span>
+                  </div>
+                </div>
+
+                <div class="w-full max-w-4xl mb-8">
+                   <p class="text-cyan-400/80 max-w-2xl bg-[#0A0A15] border border-cyan-500/50 p-4 rounded-none leading-relaxed data-mono uppercase tracking-widest text-xs">
+                      Invest your accrued SYS_LOAD into permanent protocols. Modifications committed here bridge across sessions.
+                   </p>
+                </div>
+
+                <!-- Skill Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl pb-10">
+                   @for (skill of skillTree; track skill.id) {
+                      <div class="bg-[#0A0A15] p-6 rounded-none border-2 transition-all relative overflow-hidden group"
+                           [class.border-cyan-400]="hasSkill(skill.id)"
+                           [class.border-slate-700]="!hasSkill(skill.id) && canBuySkill(skill)"
+                           [class.border-red-900]="!hasSkill(skill.id) && !canBuySkill(skill)"
+                           [class.opacity-50]="!hasSkill(skill.id) && !canBuySkill(skill) && totalSynergy() < skill.cost"
+                      >
+                          @if (hasSkill(skill.id)) {
+                             <div class="absolute top-4 right-4 text-cyan-400 drop-shadow-[2px_2px_0_cyan]">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                             </div>
+                          }
+                          <div class="flex items-start gap-4">
+                             <div class="text-[40px] grayscale">{{skill.icon}}</div>
+                             <div class="flex-1 text-left">
+                                <h3 class="text-xl font-black text-white flex flex-col items-start gap-1 title-display">
+                                   {{skill.name}} 
+                                   <span class="text-[9px] bg-cyan-900/30 border border-cyan-500 text-cyan-400 px-2 py-0.5 rounded-none uppercase tracking-[0.2em] data-mono">{{skill.type}}</span>
+                                </h3>
+                                <p class="text-slate-400 text-xs mt-2 leading-relaxed data-mono uppercase">{{skill.desc}}</p>
+                                
+                                @if (skill.dependencies.length > 0) {
+                                   <div class="mt-3 text-[10px] text-fuchsia-500 font-bold uppercase tracking-wider data-mono">
+                                      REQ: [{{skill.dependencies.join(', ')}}]
+                                   </div>
+                                }
+
+                                <div class="mt-4 flex items-center justify-between">
+                                   <span class="font-mono text-cyan-400 font-bold text-lg drop-shadow-[2px_2px_0_rgba(6,182,212,0.3)] data-mono">{{skill.cost | number}} SYN</span>
+                                   
+                                   @if (hasSkill(skill.id)) {
+                                      <button disabled class="bg-cyan-900/30 text-cyan-500 px-5 py-1.5 rounded-none border border-cyan-500/30 font-bold text-xs cursor-not-allowed uppercase title-display tracking-widest">INSTALLED</button>
+                                   } @else if (canBuySkill(skill)) {
+                                      <button (click)="buySkill(skill)" class="bg-[#050510] hover:bg-cyan-400 hover:text-black text-cyan-400 px-5 py-1.5 rounded-none border border-cyan-400 font-bold text-xs shadow-none transition-all uppercase tracking-widest title-display brutal-border">INSTALL</button>
+                                   } @else {
+                                      <button disabled class="bg-[#0A0A15] text-red-500/50 px-5 py-1.5 rounded-none border border-red-900/30 font-bold text-xs cursor-not-allowed uppercase title-display tracking-widest">LOCKED</button>
+                                   }
+                                </div>
+                             </div>
+                          </div>
+                      </div>
+                   }
+                </div>
+
+                <div class="mt-12 mb-8 w-full max-w-4xl flex justify-center pb-20">
+                  <button (click)="gameState.set('menu'); $event.stopPropagation()" class="bg-[#0A0A15] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white font-black py-4 px-12 rounded-none shadow-none transition-all uppercase tracking-[0.2em] text-sm outline-none flex items-center gap-2 title-display">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                    RETURN_TO_SYSTEM
+                  </button>
+                </div>
+             </div>
+          }
+
+          @if (gameState() === 'leaderboard') {
+            <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col p-8 overflow-y-auto w-full max-w-3xl mx-auto rounded-none shadow-[10px_10px_0_rgba(6,182,212,0.1)] m-auto h-[90%] border-4 border-cyan-500/40 custom-scrollbar">
+               <div class="flex justify-between items-center mb-8 border-b-2 border-cyan-500/20 pb-4">
+                  <h2 class="text-3xl font-black text-cyan-400 title-display uppercase outline-text">Leaderboards</h2>
+                  <button (click)="gameState.set('menu'); $event.stopPropagation()" class="text-cyan-400 hover:text-[#050510] hover:bg-cyan-400 font-black border-2 border-cyan-400 w-10 h-10 rounded-none flex items-center justify-center transition-colors title-display">X</button>
+               </div>
+               <div class="flex flex-wrap gap-2 mb-8">
+                  <button (click)="openLeaderboard('global')" [ngClass]="firebaseInfoMode() === 'global' ? 'bg-cyan-600 text-black border-cyan-400 shadow-none' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-6 py-2 rounded-none font-black transition-all border text-sm w-full md:w-auto uppercase title-display">🌍 GLOBAL_SYNC</button>
+                  <button (click)="openLeaderboard('endless')" [ngClass]="firebaseInfoMode() === 'endless' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-6 py-2 rounded-none font-black transition-all border text-sm uppercase title-display">ENDLESS_GRIND</button>
+                  <button (click)="openLeaderboard('championship')" [ngClass]="firebaseInfoMode() === 'championship' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-6 py-2 rounded-none font-black transition-all border text-sm uppercase title-display">Q3_SPRINT</button>
+                  <button (click)="openLeaderboard('takeover')" [ngClass]="firebaseInfoMode() === 'takeover' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-6 py-2 rounded-none font-black transition-all border text-sm uppercase title-display">HOSTILE_TAKEOVER</button>
+                  <button (click)="openLeaderboard('quiet')" [ngClass]="firebaseInfoMode() === 'quiet' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-6 py-2 rounded-none font-black transition-all border text-sm uppercase title-display">QUIET_QUIT</button>
+               </div>
+               <div class="flex flex-col gap-3">
+                  @for (row of leaderboards(); track row.userId; let i = $index) {
+                     <div class="bg-[#0A0A15] border border-cyan-500/20 p-4 rounded-none flex justify-between items-center shadow-none hover:border-cyan-500 hover:bg-cyan-900/10 transition-colors brutal-border">
+                        <div class="flex items-center gap-4">
+                           <div class="w-10 h-10 rounded-none flex items-center justify-center font-black text-md shadow-none"
+                                [ngClass]="i === 0 ? 'bg-cyan-500 text-black border-2 border-cyan-300' : i === 1 ? 'bg-slate-300 text-black border-2 border-slate-100' : i === 2 ? 'bg-amber-600 text-black border-2 border-amber-400' : 'bg-[#050510] text-cyan-500 border border-cyan-900 data-mono block'">
+                              {{ i + 1 }}
+                           </div>
+                           <div class="flex flex-col">
+                              <span class="font-black text-white text-xl uppercase title-display">{{ row.displayName }}</span>
+                              @if (row.level && row.globalTitle) {
+                                 <span class="text-[9px] text-cyan-400 mt-0.5 font-bold uppercase tracking-[0.2em] data-mono">LVL_{{ row.level }} &middot; {{ row.globalTitle }}</span>
+                              } @else if (row.level) {
+                                 <span class="text-[9px] text-cyan-400 mt-0.5 font-bold uppercase tracking-[0.2em] data-mono">LVL_{{ row.level }}</span>
+                              } @else if (row.title) {
+                                 <span class="text-[9px] text-fuchsia-400 mt-0.5 font-bold uppercase tracking-[0.2em] data-mono">{{ row.title }}</span>
+                              } @else {
+                                 <span class="text-[9px] text-slate-500 mt-0.5 font-bold uppercase tracking-[0.2em] data-mono">CORP_DRONE</span>
+                              }
+                           </div>
+                        </div>
+                        <div class="font-mono font-black text-cyan-400 text-3xl tracking-tighter drop-shadow-[2px_2px_0_rgba(6,182,212,0.5)] data-mono">{{ row.score }}</div>
+                     </div>
+                  }
+                  
+                  @if (leaderboards().length === 0) {
+                     <div class="text-center text-cyan-500/50 py-10 text-lg uppercase title-display bg-[#050510] rounded-none border border-dashed border-cyan-900 data-mono tracking-widest">
+                        NO_DATA_LOGGED. AWAITING_FIRST_OVERLORD...
+                     </div>
+                  }
+               </div>
+            </div>
+          }
+
+          @if (gameState() === 'account') {
+            <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col p-8 w-full max-w-2xl mx-auto rounded-none shadow-[10px_10px_0_rgba(6,182,212,0.1)] m-auto h-[90%] border-4 border-cyan-500/40 overflow-y-auto custom-scrollbar">
+               
+               <div class="flex items-center gap-6 border-b-2 border-cyan-500/20 pb-6 mb-8 relative">
+                   <div class="relative shrink-0">
+                      <div class="absolute inset-0 rounded-none bg-cyan-500 blur-lg opacity-40 mix-blend-screen"></div>
+                      <img [src]="fb.user()?.photoURL || 'https://picsum.photos/seed/user/80/80'" alt="Avatar" referrerpolicy="no-referrer" class="w-24 h-24 rounded-none border-2 border-cyan-400 relative z-10 grayscale brutal-border"/>
+                   </div>
+                   <div class="flex-1">
+                      <h2 class="text-3xl font-black text-white mb-1 uppercase title-display">{{ fb.user()?.displayName }}</h2>
+                      <p class="text-slate-400 text-sm font-semibold tracking-wide mb-3 data-mono">{{ fb.user()?.email }}</p>
+                      <div class="inline-block bg-cyan-900/40 border border-cyan-500 text-cyan-300 font-bold px-3 py-1 rounded-none text-xs uppercase tracking-widest shadow-none data-mono">
+                         RANK: {{ currentTitle() }}
+                      </div>
+                   </div>
+                   <button (click)="gameState.set('menu'); isPaused = true; $event.stopPropagation()" class="absolute top-0 right-0 text-cyan-400 hover:text-[#050510] hover:bg-cyan-400 font-black border-2 border-cyan-400 w-10 h-10 rounded-none flex items-center justify-center transition-colors title-display">X</button>
+               </div>
+               
+               <h3 class="text-lg font-black text-cyan-400 mb-4 flex items-center gap-2 title-display uppercase outline-text">CAREER_STATS</h3>
+               
+               <div class="grid grid-cols-2 gap-4 mb-8">
+                  <div class="bg-[#0A0A15] border border-cyan-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-cyan-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">LIFETIME_SYS_LOAD</span>
+                     <span class="text-2xl font-black text-white title-display">{{(userProfile()?.synergy || totalSynergy()) | number}}</span>
+                  </div>
+                  <div class="bg-[#0A0A15] border border-fuchsia-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-fuchsia-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">PROTOCOLS_INSTALLED</span>
+                     <span class="text-2xl font-black text-white title-display">{{userProfile()?.skills || unlockedSkills().length}} / {{skillTree.length}}</span>
+                  </div>
+                  <div class="bg-[#0A0A15] border border-blue-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-blue-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">PEAK_ENDLESS</span>
+                     <span class="text-2xl font-black text-white title-display">{{userProfile()?.endless || 0 | number}}</span>
+                  </div>
+                  <div class="bg-[#0A0A15] border border-purple-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-purple-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">PEAK_Q3_SPRINT</span>
+                     <span class="text-2xl font-black text-white title-display">{{userProfile()?.champion || 0 | number}}</span>
+                  </div>
+                  <div class="bg-[#0A0A15] border border-red-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-red-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">PEAK_TAKEOVER</span>
+                     <span class="text-2xl font-black text-white title-display">{{userProfile()?.takeover || 0 | number}}</span>
+                  </div>
+                  <div class="bg-[#0A0A15] border border-emerald-500/50 rounded-none p-5 flex flex-col shadow-none brutal-border">
+                     <span class="text-[10px] text-emerald-500 font-bold tracking-[0.2em] uppercase mb-1 data-mono">PEAK_QUIET_QUIT</span>
+                     <span class="text-2xl font-black text-white title-display">{{userProfile()?.quiet || 0 | number}}</span>
+                  </div>
+               </div>
+
+               <div class="mt-auto flex justify-center">
+                  <button (click)="fb.logout(); gameState.set('menu')" class="px-10 py-3 bg-[#0A0A15] text-red-500 border border-red-900 rounded-none font-black hover:bg-red-500 hover:text-black transition-colors shadow-none text-sm uppercase tracking-widest flex items-center gap-2 title-display">
+                     LOGOUT_SYS
+                  </button>
+               </div>
+            </div>
+          }
+
+          @if (activeChallenge() && gameState() === 'menu') {
+             <div class="absolute inset-0 bg-[#060B14]/90 backdrop-blur-lg z-50 flex items-center justify-center p-8">
+                <div class="bg-gradient-to-b from-[#450a0a] to-[#0A101D] border-4 border-red-600 rounded-2xl shadow-[0_0_50px_rgba(239,68,68,0.4)] p-8 max-w-md w-full text-center relative overflow-hidden">
+                   <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                   
+                   <div class="inline-block transform -skew-x-12 bg-red-600 px-4 py-1 border border-black ring-2 ring-red-400 mb-6 shadow-md">
+                      <h2 class="text-white font-black tracking-widest text-lg uppercase m-0 leading-none py-1">URGENT HR NOTICE</h2>
+                   </div>
+                   
+                   <p class="text-lg text-white font-medium mb-4 leading-relaxed relative z-10">
+                      You have been formally placed on a <span class="font-black text-rose-400">PERFORMANCE IMPROVEMENT PLAN</span> by <span class="font-black text-white italic underline">{{activeChallenge()?.creatorName}}</span>.
+                   </p>
+                   
+                   <p class="text-sm text-slate-300 font-medium mb-6 leading-relaxed relative z-10 italic border-l-4 border-red-500/50 pl-4 text-left">
+                      "Your output in <span class="text-white uppercase font-bold">{{activeChallenge()?.gameMode}}</span> mode is currently lacking relative to our team synergy goals. Prove your cultural fit or initiate your transitioning phase."
+                   </p>
+
+                   <div class="bg-[#060B14] border border-red-500/50 rounded-xl p-5 mb-8 shadow-inner inline-block">
+                      <div class="text-xs text-red-300 font-bold uppercase tracking-widest mb-1">Target Synergy Required</div>
+                      <div class="text-5xl font-black text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)] animate-pulse">{{activeChallenge()?.targetScore | number}}</div>
+                   </div>
+                   
+                   <div class="flex gap-4 relative z-10">
+                      <button (click)="acceptChallenge(); $event.stopPropagation()" class="flex-1 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black py-4 rounded-xl shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-all uppercase tracking-wider outline-none text-sm border border-red-400">
+                         ACCEPT P.I.P.
+                      </button>
+                      <button (click)="declineChallenge(); $event.stopPropagation()" class="flex-1 bg-slate-800 text-slate-400 border border-slate-600 hover:text-white hover:border-slate-400 py-4 rounded-xl font-bold transition-all uppercase tracking-wider text-sm outline-none">
+                         QUIT
+                      </button>
+                   </div>
+                </div>
+             </div>
+          }
+       </div>
+    </div>
+
+    <!-- BOTTOM ROW: Quests, Actions, Logs -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2 h-auto md:h-[260px]">
+      
+      <!-- Daily Objectives -->
+      <div class="bg-[#050510] border border-cyan-500/30 rounded-none shadow-none flex flex-col h-[260px] md:h-full p-4 brutal-border">
+        <span class="text-[11px] font-black text-cyan-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2 data-mono outline-text outline-1"><mat-icon style="font-size:16px; width:16px; height:16px;">task_alt</mat-icon> CORE_OBJECTIVES</span>
+        <div class="flex-1 flex flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
+          @if (quests().length > 0) {
+             @for (q of quests(); track q.desc) {
+                <div class="flex flex-col gap-2 p-3 rounded-none border bg-[#050510]" [ngClass]="q.completed ? 'border-cyan-500 shadow-[2px_2px_0_rgba(6,182,212,0.15)]' : 'border-slate-800'">
+                   <div class="flex justify-between items-center text-[11px] font-black uppercase tracking-widest title-display" [ngClass]="q.completed ? 'text-cyan-400' : 'text-slate-300'">
+                      <span class="flex items-center gap-1.5 z-10 w-[70%]">
+                         @if (q.completed) {
+                            <mat-icon class="animate-pulse flex-shrink-0 text-cyan-400" style="font-size: 16px; width: 16px; height: 16px;">check_box</mat-icon>
+                         }
+                         <span class="truncate">{{ q.desc }}</span>
+                      </span>
+                      <span class="bg-[#0A0A15] border border-cyan-500/40 text-cyan-400 font-bold tracking-[0.2em] text-[9px] px-2 py-0.5 rounded-none flex-shrink-0 data-mono">
+                         +{{ q.reward }} SYN
+                      </span>
+                   </div>
+                   <div class="flex items-center gap-3 w-full mt-1">
+                      <div class="flex-1 h-3 bg-[#050510] rounded-none overflow-hidden border border-slate-700/50">
+                         <div class="h-full bg-cyan-500 transition-all shadow-[2px_0_0_#fff]" [style.width.%]="(q.progress / q.target) * 100"></div>
+                      </div>
+                      <span class="text-[9px] font-bold z-10 text-right flex-shrink-0 tracking-[0.2em] min-w-[32px] data-mono" [ngClass]="q.completed ? 'text-cyan-400' : 'text-slate-500'">
+                         @if (q.completed) {
+                            DONE
+                         } @else {
+                            {{ q.progress }} / {{ q.target }}
+                         }
+                      </span>
+                   </div>
+                </div>
+             }
+          } @else {
+             <div class="flex-1 flex items-center justify-center text-slate-600 text-[10px] uppercase tracking-widest font-bold text-center px-4 data-mono">
+                NO_ACTIVE_TASKS. INITIATE_SESSION.
+             </div>
+          }
+        </div>
+      </div>
+
+      <!-- Executive Actions -->
+      <div class="bg-[#050510] border border-fuchsia-500/30 rounded-none shadow-none flex flex-col h-[280px] md:h-full relative p-4 brutal-border">
+         <span class="text-[11px] font-black text-fuchsia-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 data-mono outline-text outline-1"><mat-icon style="font-size:16px; width:16px; height:16px;">work</mat-icon> EXEC_ACTIONS</span>
+         <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col gap-2" [class.opacity-30]="!fb.user() || gameState() !== 'playing'">
+            <button (click)="stareAtDeck()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-fuchsia-900/20 border border-slate-700 hover:border-fuchsia-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">STARE_AT_DECK</span>
+              <span class="text-[9px] font-bold text-fuchsia-400 data-mono">+15 BUSY</span>
+            </button>
+            <button (click)="networkingLunch()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-cyan-900/20 border border-slate-700 hover:border-cyan-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">NETWORKING_LUNCH</span>
+              <span class="text-[9px] font-bold text-cyan-400 data-mono">+20 SYN, <span class="text-amber-400">-15 BUSY</span></span>
+            </button>
+            <button (click)="fakeEmpathy()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-blue-900/20 border border-slate-700 hover:border-blue-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">FAKE_EMPATHY</span>
+              <span class="text-[9px] font-bold text-blue-400 data-mono">+10 MOR, <span class="text-fuchsia-400">+5 BUSY</span></span>
+            </button>
+            <button (click)="approveExpenseReport()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-cyan-900/20 border border-slate-700 hover:border-cyan-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">APPROVE_EXPENSES</span>
+              <span class="text-[9px] font-bold text-cyan-400 data-mono">+10 SYN, <span class="text-red-400">-15 MOR</span></span>
+            </button>
+            <button (click)="synergyWorkshop()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-purple-900/20 border border-slate-700 hover:border-purple-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">SYN_WORKSHOP</span>
+              <span class="text-[9px] font-bold text-purple-400 data-mono">+25 SYN, <span class="text-amber-400">-10 BUSY</span></span>
+            </button>
+            <button (click)="brainstormingSession()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-cyan-900/20 border border-slate-700 hover:border-cyan-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+              <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">BRAINSTORM_SESSION</span>
+              <span class="text-[9px] font-bold text-cyan-400 data-mono">+15 SYN, <span class="text-fuchsia-400">+10 BUSY</span></span>
+             </button>
+             <button (click)="fakeCollaboration()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-fuchsia-900/20 border border-slate-700 hover:border-fuchsia-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+               <span class="font-black text-[11px] text-slate-300 uppercase tracking-widest title-display">FAKE_COLLAB</span>
+               <span class="text-[9px] font-bold text-fuchsia-400 data-mono">+10 BUSY, <span class="text-red-400">-5 MOR</span></span>
+             </button>
+             <button (click)="fireTeamMember()" [disabled]="!fb.user() || gameState() !== 'playing'" class="w-full bg-[#0A0A15] hover:bg-red-900/40 border border-slate-700 hover:border-red-500/50 rounded-none py-2.5 px-4 flex items-center justify-between transition-colors text-left group shrink-0 disabled:pointer-events-none disabled:opacity-50 brutal-border-hover">
+               <span class="font-black text-[11px] text-red-500 uppercase tracking-widest title-display">FIRE_TEAM_MEMBER</span>
+               <span class="text-[9px] font-bold text-cyan-400 data-mono">+10 SYN, <span class="text-red-500">-20 MOR</span></span>
+             </button>
+         </div>
+      </div>
+
+      <!-- Live Workflow Logs -->
+      <div class="bg-[#050510] border border-purple-500/30 rounded-none shadow-none flex flex-col h-[260px] md:h-full p-4 brutal-border">
+         <span class="text-[11px] font-black text-purple-400 uppercase tracking-[0.2em] mb-3 flex items-center gap-2 data-mono outline-text outline-1"><mat-icon style="font-size:16px; width:16px; height:16px;">receipt</mat-icon> SYS_LOGS</span>
+         <div class="bg-[#0A0A15] rounded-none p-4 flex-1 overflow-hidden flex flex-col relative border border-slate-700 shadow-none brutal-border">
+            <div class="flex-1 overflow-y-auto pr-2 custom-scrollbar flex flex-col-reverse gap-3">
+               @if (logs().length === 0) {
+                 <div class="flex-1 flex items-center justify-center text-slate-600 text-[10px] font-bold text-center tracking-[0.2em] data-mono uppercase">
+                   < AWAITING_LOGS >
+                 </div>
+               }
+               @for (log of logs(); track log.time) {
+                 <div class="animate-slide-bounce border-l-2 pl-3 py-1.5 flex flex-col gap-1 rounded-none bg-[#050510]"
+                      [ngClass]="{
+                        'border-slate-500 text-slate-300': log.type === 'info',
+                        'border-cyan-400 text-cyan-300': log.type === 'success',
+                        'border-purple-400 text-purple-300': log.type === 'warning',
+                        'border-red-500 text-red-400': log.type === 'error'
+                      }">
+                   <span class="text-[9px] uppercase font-bold text-slate-500 tracking-[0.2em] data-mono">{{ log.time | date:'HH:mm:ss' }}</span>
+                   <p class="leading-snug text-[10px] uppercase font-bold font-mono tracking-widest">{{ log.message }}</p>
+                 </div>
+               }
+            </div>
+         </div>
+      </div>
+    </div>
+  </main>
+</div>

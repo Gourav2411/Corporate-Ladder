@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { 
+      allow read, write: if false; 
+    }
+
+    function isValidId(id) { 
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid; }
+
+    function isValidUserProfile(data) {
+      return data.keys().hasAny(['displayName', 'createdAt', 'highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills']) &&
+             data.get('displayName', '') is string && data.get('displayName', '').size() <= 100 &&
+             (data.keys().hasAll(['highestScore_endless']) ? data.highestScore_endless is number : true) &&
+             (data.keys().hasAll(['highestScore_championship']) ? data.highestScore_championship is number : true) &&
+             (data.keys().hasAll(['highestScore_takeover']) ? data.highestScore_takeover is number : true) &&
+             (data.keys().hasAll(['highestScore_quiet']) ? data.highestScore_quiet is number : true) &&
+             (data.keys().hasAll(['lifetimeSynergy']) ? data.lifetimeSynergy is number : true) &&
+             (data.keys().hasAll(['unlockedSkills']) ? data.unlockedSkills is list && data.unlockedSkills.size() <= 50 : true);
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn(); // Basic profiles needed for game UI maybe, or just owner
+      allow create: if isOwner(userId) && 
+                       isValidId(userId) &&
+                       isValidUserProfile(incoming()) && 
+                       incoming().keys().hasAll(['displayName', 'createdAt']) && 
+                       incoming().createdAt == request.time;
+      allow update: if isOwner(userId) && 
+                       isValidUserProfile(incoming()) &&
+                       incoming().createdAt == existing().createdAt &&
+                       // Must only modify allowed fields
+                       incoming().diff(existing()).affectedKeys().hasOnly(['highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills']) &&
+                       // High scores can only go up
+                       (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_endless']) ? incoming().get('highestScore_endless', 0) >= existing().get('highestScore_endless', 0) : true) &&
+                       (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_championship']) ? incoming().get('highestScore_championship', 0) >= existing().get('highestScore_championship', 0) : true) &&
+                       (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_takeover']) ? incoming().get('highestScore_takeover', 0) >= existing().get('highestScore_takeover', 0) : true) &&
+                       (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_quiet']) ? incoming().get('highestScore_quiet', 0) >= existing().get('highestScore_quiet', 0) : true);
+    }
+
+    function isValidLeaderboardEntry(data, userId) {
+       return data.keys().hasAll(['userId', 'displayName', 'score', 'mode', 'timestamp']) &&
+              data.keys().hasAny(['title', 'userId']) && // Dummy check just to say it might have title
+              data.userId == userId &&
+              data.displayName is string && data.displayName.size() <= 100 &&
+              (data.keys().hasAll(['title']) ? (data.title is string && data.title.size() <= 100) : true) &&
+              data.score is number && data.score >= 0 &&
+              data.mode is string && data.mode.size() <= 20 &&
+              data.timestamp == request.time;
+    }
+
+    function isValidChallenge(data, userId) {
+       return data.keys().hasAll(['creatorId', 'creatorName', 'targetScore', 'gameMode', 'createdAt']) &&
+              data.keys().size() == 5 &&
+              data.creatorId == userId &&
+              data.creatorName is string && data.creatorName.size() <= 100 &&
+              data.targetScore is number && data.targetScore >= 0 &&
+              data.gameMode is string && data.gameMode.size() <= 20 &&
+              data.createdAt == request.time;
+    }
+
+    match /challenges/{challengeId} {
+      allow get: if true; // Public view for shared links
+      allow list: if isSignedIn() && existing().creatorId == request.auth.uid; // Only their own
+      allow create: if isSignedIn() &&
+                       isValidId(challengeId) &&
+                       isValidChallenge(incoming(), request.auth.uid);
+    }
+
+    match /leaderboards/{mode}/entries/{entryId} {
+      allow list: if true; // Public leaderboard
+      allow create: if isSignedIn() &&
+                       isValidId(entryId) &&
+                       isValidLeaderboardEntry(incoming(), request.auth.uid) &&
+                       (mode == 'endless' || mode == 'championship' || mode == 'takeover' || mode == 'quiet');
+      // No updates or deletes to scores
+    }
+
+    match /multiplayer_rooms/{roomId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(roomId);
+      allow update: if isSignedIn(); // Let any player join and update their score
+      allow delete: if isSignedIn() && existing().hostId == request.auth.uid;
+    }
+  }
+}

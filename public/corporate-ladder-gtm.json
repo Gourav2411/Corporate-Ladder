@@ -1,0 +1,47 @@
+{
+  "exportFormatVersion": 2,
+  "exportTime": "2026-04-20T12:00:00.000Z",
+  "containerVersion": {
+    "accountId": "1",
+    "containerId": "1",
+    "containerVersionId": "0",
+    "name": "Corporate Ladder Analytics",
+    "container": {
+      "accountId": "1",
+      "containerId": "1",
+      "publicId": "GTM-MHJ3LWKX",
+      "name": "Corporate Ladder Analytics",
+      "usageContext": ["WEB"]
+    },
+    "variable": [
+      { "accountId": "1", "containerId": "1", "variableId": "v1", "name": "DLV_game_mode", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "game_mode" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v2", "name": "DLV_message", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "message" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v3", "name": "DLV_log_type", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "log_type" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v4", "name": "DLV_current_synergy", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "current_synergy" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v5", "name": "DLV_title", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "title" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v6", "name": "DLV_new_level", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "new_level" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v7", "name": "DLV_skill_id", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "skill_id" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v8", "name": "DLV_skill_name", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "skill_name" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v9", "name": "DLV_reason", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "reason" } ] },
+      { "accountId": "1", "containerId": "1", "variableId": "v10", "name": "DLV_synergy", "type": "v", "parameter": [ { "type": "INTEGER", "key": "dataLayerVersion", "value": "2" }, { "type": "TEMPLATE", "key": "name", "value": "synergy" } ] }
+    ],
+    "trigger": [
+      { "accountId": "1", "containerId": "1", "triggerId": "t1", "name": "Custom_game_start", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "game_start" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t2", "name": "Custom_game_activity", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "game_activity" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t3", "name": "Custom_action_jumped", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "action_jumped" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t4", "name": "Custom_promotion", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "promotion" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t5", "name": "Custom_skill_unlocked", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "skill_unlocked" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t6", "name": "Custom_game_over", "type": "CUSTOM_EVENT", "customEventFilter": [], "parameter": [ { "type": "TEMPLATE", "key": "eventName", "value": "game_over" } ] },
+      { "accountId": "1", "containerId": "1", "triggerId": "t99", "name": "All Pages", "type": "PAGEVIEW", "parameter": [] }
+    ],
+    "tag": [
+      { "accountId": "1", "containerId": "1", "tagId": "tag1", "name": "GA4 Config", "type": "googletag", "parameter": [ { "type": "TEMPLATE", "key": "tagId", "value": "G-VSEDGR1WH8" } ], "firingTriggerId": ["t99"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag2", "name": "GA4 Event - game_start", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "game_start" }, { "type": "LIST", "key": "eventParameters", "list": [ { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "game_mode" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_game_mode}}" } ] } ] } ], "firingTriggerId": ["t1"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag3", "name": "GA4 Event - game_activity", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "game_activity" }, { "type": "LIST", "key": "eventParameters", "list": [ { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "message" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_message}}" } ] }, { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "log_type" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_log_type}}" } ] }, { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "current_synergy" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_current_synergy}}" } ] } ] } ], "firingTriggerId": ["t2"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag4", "name": "GA4 Event - action_jumped", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "action_jumped" } ], "firingTriggerId": ["t3"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag5", "name": "GA4 Event - promotion", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "promotion" }, { "type": "LIST", "key": "eventParameters", "list": [ { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "new_level" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_new_level}}" } ] } ] } ], "firingTriggerId": ["t4"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag6", "name": "GA4 Event - skill_unlocked", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "skill_unlocked" }, { "type": "LIST", "key": "eventParameters", "list": [ { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "skill_id" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_skill_id}}" } ] }, { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "skill_name" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_skill_name}}" } ] } ] } ], "firingTriggerId": ["t5"] },
+      { "accountId": "1", "containerId": "1", "tagId": "tag7", "name": "GA4 Event - game_over", "type": "gaawe", "parameter": [ { "type": "TEMPLATE", "key": "measurementIdOverride", "value": "G-VSEDGR1WH8" }, { "type": "TEMPLATE", "key": "eventName", "value": "game_over" }, { "type": "LIST", "key": "eventParameters", "list": [ { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "reason" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_reason}}" } ] }, { "type": "MAP", "map": [ { "type": "TEMPLATE", "key": "name", "value": "synergy" }, { "type": "TEMPLATE", "key": "value", "value": "{{DLV_synergy}}" } ] } ] } ], "firingTriggerId": ["t6"] }
+    ]
+  }
+}
