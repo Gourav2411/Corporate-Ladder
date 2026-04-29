@@ -63,6 +63,7 @@ export interface UserProfile {
   highestScore_quiet?: number;
   lifetimeSynergy?: number;
   unlockedSkills?: string[];
+  achievements?: string[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -236,14 +237,15 @@ export class FirebaseService {
     }
   }
 
-  async syncMeta(lifetimeSynergy: number, unlockedSkills: string[]) {
+  async syncMeta(lifetimeSynergy: number, unlockedSkills: string[], achievements: string[] = []) {
     const u = this.user();
     if (!u) return;
     try {
       const userRef = doc(db, 'users', u.uid);
       await setDoc(userRef, {
         lifetimeSynergy,
-        unlockedSkills
+        unlockedSkills,
+        achievements
       }, { merge: true });
     } catch (error) {
       console.error('Failed to sync meta to cloud:', error);

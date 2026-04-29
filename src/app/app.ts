@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, signal, computed, effect, ViewChild
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
 import { FirebaseService, Challenge, MultiplayerRoom } from './firebase.service';
+import { AchievementService } from './achievements.service';
 import { Unsubscribe, onSnapshot, doc } from 'firebase/firestore';
 import { db } from './firebase.service';
 
@@ -231,6 +232,7 @@ export class App implements OnDestroy {
   });
 
   currentTitle = computed(() => TITLES[this.levelIndex()]);
+  currentLevel = computed(() => this.levelIndex() + 1);
 
   lifetimeLevelIndex = computed(() => {
     const s = this.totalSynergy();
@@ -316,6 +318,7 @@ export class App implements OnDestroy {
   leaderboards = signal<any[]>([]);
 
   readonly fb = inject(FirebaseService);
+  readonly achievements = inject(AchievementService);
 
   gameOverReason = '';
   linkedInPost = '';
@@ -425,6 +428,9 @@ export class App implements OnDestroy {
                  if (p.unlockedSkills !== undefined) {
                      this.unlockedSkills.set(p.unlockedSkills);
                      if (typeof window !== 'undefined') localStorage.setItem('corp_skills', JSON.stringify(p.unlockedSkills));
+                 }
+                 if (p.achievements !== undefined) {
+                     this.achievements.initUnlocked(p.achievements);
                  }
              }
          });
@@ -638,6 +644,7 @@ export class App implements OnDestroy {
 
   fireTeamMember() {
     this.doersFired++;
+    this.achievements.track('fire');
     // Tracking doers fired is in its own stat `doersFired` when an obstacle is hit, but we'll track this button press too
     this.teamMorale.update(m => Math.max(0, m - 20));
     this.synergy.update(s => s + (10 * this.comboMultiplier));
@@ -785,7 +792,7 @@ export class App implements OnDestroy {
         try {
            document.execCommand('copy');
            this.addLog("Link copied! (Manual copy needed for full message)", "success");
-        } catch (e) {
+        } catch {
            this.addLog("Please copy the link manually.", "warning");
         }
      } else {
@@ -858,20 +865,6 @@ export class App implements OnDestroy {
   isFrozen = false;
   freezeTimer = 0;
   sabotageText = '';
-  
-  isCrunchTime = false;
-  crunchTimer = 0;
-  crunchText = '';
-
-  startCrunchTime() {
-     this.isCrunchTime = true;
-     this.crunchTimer = 900; // 15 seconds at 60fps
-     this.crunchText = 'PIZZA PARTY IMMINENT';
-     this.screenShake = 20;
-     this.spawnFloatingText("🚨 CRUNCH TIME 🚨", '#EF4444', this.canvasRef.nativeElement.width / 2 - 100, 200);
-     this.addLog("CRUNCH TIME INITIATED! 2X Speed and 2X Synergy gains!", "warning");
-     this.playSound('fire'); // Same aggressive sound
-  }
 
   listenToRoom(roomId: string) {
      if (this.roomSub) this.roomSub();
@@ -1082,6 +1075,7 @@ export class App implements OnDestroy {
     this.runStats['quickCoffeeBreak'] = (this.runStats['quickCoffeeBreak'] || 0) + 1;
     if (this.coffeeBoostTimer === 0) {
       this.addLog("Took a quick coffee break! Energy surged for " + (this.hasSkill('coffee_boost') ? "10" : "5") + " seconds.", 'success');
+      this.achievements.track('coffee');
       this.updateQuest('coffee');
       this.updateQuest('coffee_addict');
       this.triggerHaptic(20);
@@ -1130,10 +1124,13 @@ export class App implements OnDestroy {
      this.gameOverReason = "Voluntarily Retired to protect your Golden Parachute!";
      this.generateLinkedInPost();
      this.fb.submitScore(this.synergy(), this.gameMode(), this.lifetimeTitle());
-     this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills());
+     this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills(), this.achievements.unlocked());
      this.challengeShareLink.set(null); // Reset for next game
      
      this.trackAnalytics('game_over', { reason: 'retired', synergy: runScore, mode: this.gameMode(), title: this.currentTitle() });
+     
+     this.achievements.checkSynergy(this.lifetimeEarnedSynergy());
+     this.achievements.checkGameMode(this.gameMode());
      
      if (this.activeRoom()) {
        this.fb.updateRoomPlayer(this.activeRoom()!.roomId, this.synergy(), 'gameover');
@@ -1158,10 +1155,13 @@ export class App implements OnDestroy {
      this.screenShake += 30; // Massive shake
      this.generateLinkedInPost();
      this.fb.submitScore(this.synergy(), this.gameMode(), this.lifetimeTitle());
-     this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills());
+     this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills(), this.achievements.unlocked());
      this.challengeShareLink.set(null); // Reset for next game
 
      this.trackAnalytics('game_over', { reason: 'fired', details: reason, synergy: runScore, mode: this.gameMode(), title: this.currentTitle() });
+
+     this.achievements.checkSynergy(this.lifetimeEarnedSynergy());
+     this.achievements.checkGameMode(this.gameMode());
 
      if (this.activeRoom()) {
        this.fb.updateRoomPlayer(this.activeRoom()!.roomId, this.synergy(), 'gameover');
@@ -1263,6 +1263,9 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
            synergy: p.lifetimeSynergy || 0,
            skills: p.unlockedSkills?.length || 0
         });
+        if (p.achievements) {
+           this.achievements.initUnlocked(p.achievements);
+        }
      }
   }
 
@@ -1495,6 +1498,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
       this.playSound('jump');
       this.triggerHaptic(40);
       this.trackAnalytics('action_jumped');
+      this.achievements.track('jump');
       this.updateQuest('jump');
       this.updateQuest('jump_high');
     }
@@ -1777,37 +1781,13 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
        }
     }
 
-    if (!this.isCrunchTime && this.frameCount > 1000 && Math.random() < 0.0003 && !this.isFrozen) {
-       this.startCrunchTime();
-    }
 
-    if (this.isCrunchTime) {
-       this.crunchTimer--;
-       this.screenShake = 3; // Constant low rumble
-       
-       if (this.frameCount % 10 === 0) {
-           // Flashing floating texts during crunch
-           this.spawnFloatingText("DO MORE WITH LESS!", '#FCD34D', 
-               this.canvasRef.nativeElement.width * Math.random(), 
-               this.canvasRef.nativeElement.height * Math.random());
-       }
-
-       if (this.crunchTimer <= 0) {
-          this.isCrunchTime = false;
-          this.crunchText = '';
-          this.addLog("Crunch Time survived. Barely.", "info");
-       }
-    }
 
     // Calculate combo multiplier
     if (this.comboMeter > 75) this.comboMultiplier = 3;
     else if (this.comboMeter > 40) this.comboMultiplier = 2;
     else this.comboMultiplier = 1;
     
-    if (this.isCrunchTime) {
-       this.comboMultiplier *= 2; // Double synergy points
-    }
-
     if (!this.isPaused && this.comboMeter > 0) {
       this.comboMeter -= this.hasSkill('combo_retain') ? 0.07 : 0.1; // Drain combo
     }
@@ -1872,10 +1852,10 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
       }
     }
 
-    const currentSpeed = (this.baseSpeed + (this.coffeeBoostTimer > 0 ? 2 : 0)) * (this.isCrunchTime ? 2 : 1);
+    const currentSpeed = (this.baseSpeed + (this.coffeeBoostTimer > 0 ? 2 : 0));
 
     // Spawn Blocks
-    if (this.frameCount % (this.isCrunchTime ? 125 : 250) === 0) {
+    if (this.frameCount % 250 === 0) {
       this.blocks.push({
         x: this.canvasRef.nativeElement.width,
         y: this.groundLevel - this.player.height - 60, // Always reachable above head
@@ -1913,9 +1893,8 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
     // Spawn obstacles
     // Speed increases slightly over time
     const spawnRate = Math.max(40, 100 - Math.floor(this.frameCount / 200));
-    const effectiveSpawnRate = this.isCrunchTime ? 20 : spawnRate; // Spawns almost constantly during Crunch Time
-    if (this.frameCount % effectiveSpawnRate === 0) {
-      const isHurdle = this.isCrunchTime ? (Math.random() > 0.2) : (Math.random() > 0.6); // 80% hurdles during crunch time
+    if (this.frameCount % spawnRate === 0) {
+      const isHurdle = (Math.random() > 0.6); // 40% chance of an actionable item
       
       let action;
       let width = 36;
@@ -1930,10 +1909,6 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
            return true; 
         });
         
-        if (this.isCrunchTime) {
-           // Restrict to the absolute worst kind of hurdles to make it chaotic
-           availableHurdles = this.HURDLES.filter(h => h.type === 'urgentEmail' || h.type === 'redTape' || h.type === 'micromanager');
-        }
         action = availableHurdles[Math.floor(Math.random() * availableHurdles.length)];
         width = action.width;
         speedModifier = action.speedModifier;
@@ -1995,13 +1970,13 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
            obs.collected = true;
            if (obs.isHurdle) {
               if (obs.action.type === 'redTape') {
-                  const penalty = this.isCrunchTime ? 60 : 20;
+                  const penalty = 20;
                   this.synergy.update(s => Math.max(0, s - penalty));
                   this.screenShake = 5;
                   this.spawnFloatingText("BLOCKED!", '#EF4444', obs.x, obs.y - 20);
                   this.addLog("Got tangled in Bureaucratic Red Tape. Productivity halted.", 'error');
               } else if (obs.action.type === 'micromanager') {
-                  const mmPenalty = this.isCrunchTime ? 50 : 10;
+                  const mmPenalty = 10;
                   this.synergy.update(s => Math.max(0, s - mmPenalty));
                   this.teamMorale.update(m => Math.max(0, m - 15));
                   this.screenShake = 8;
@@ -2032,6 +2007,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
             obs.collected = true;
             this.projectiles.splice(j, 1);
             this.doersFired++;
+            this.achievements.track('fire');
             this.screenShake = 10;
             this.addCombo(15);
             this.spawnFloatingText("PIVOT!", '#EF4444', obs.x, obs.y - 20);
@@ -2045,10 +2021,9 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
 
       if (obs.x + obs.width < 0) {
         if (!obs.collected && obs.isHurdle && obs.action.type === 'urgentEmail') {
-           const mailPenalty = this.isCrunchTime ? 25 : 5;
+           const mailPenalty = 5;
            this.synergy.update(s => Math.max(0, s - mailPenalty));
            this.addLog("Missed an Urgent Email. Penalty to your synergy standing.", 'error');
-           if (this.isCrunchTime) this.screenShake += 2;
         }
         this.obstacles.splice(i, 1);
       } else if (obs.collected) {
@@ -2095,12 +2070,12 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
     this.ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // BG
-    this.ctx.fillStyle = this.isCrunchTime ? `rgba(153, 27, 27, ${0.1 + Math.sin(this.frameCount * 0.1) * 0.05})` : '#070b13'; 
+    this.ctx.fillStyle = '#070b13'; 
     this.ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Ceiling Lights (LED panels)
-    this.ctx.fillStyle = this.isCrunchTime ? 'rgba(239, 68, 68, 0.4)' : 'rgba(56, 189, 248, 0.15)';
-    this.ctx.shadowColor = this.isCrunchTime ? '#EF4444' : '#38BDF8';
+    this.ctx.fillStyle = 'rgba(56, 189, 248, 0.15)';
+    this.ctx.shadowColor = '#38BDF8';
     this.ctx.shadowBlur = 10;
     for (let i = 0; i < 10; i++) {
         const lx = ((i * 200) - (this.frameCount * 4) % 200);
@@ -2172,7 +2147,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
         this.ctx.fillRect(bx + 120, by + 65, 10, 5);
         
         // Screen code lines
-        this.ctx.fillStyle = this.isCrunchTime ? '#ef4444' : '#10b981';
+        this.ctx.fillStyle = '#10b981';
         this.ctx.globalAlpha = 0.6;
         this.ctx.fillRect(bx + 105, by + 35, 40, 4);
         this.ctx.fillRect(bx + 105, by + 43, 30, 4);
@@ -2243,7 +2218,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
     }
     
     // Baseboard/Horizon Line
-    this.ctx.strokeStyle = this.isCrunchTime ? '#EF4444' : '#38BDF8';
+    this.ctx.strokeStyle = '#38BDF8';
     this.ctx.lineWidth = 4;
     this.ctx.beginPath();
     this.ctx.moveTo(0, this.groundLevel);
@@ -2251,7 +2226,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
     this.ctx.stroke();
 
     // Floor Baseboard Glow
-    this.ctx.shadowColor = this.isCrunchTime ? '#EF4444' : '#38BDF8';
+    this.ctx.shadowColor = '#38BDF8';
     this.ctx.shadowBlur = 10;
     this.ctx.stroke();
     this.ctx.shadowBlur = 0; // Reset
@@ -2611,7 +2586,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
       }
       return next;
     });
-    this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills());
+    this.fb.syncMeta(this.lifetimeEarnedSynergy(), this.unlockedSkills(), this.achievements.unlocked());
     this.trackAnalytics('skill_unlocked', { skill_id: skill.id, skill_name: skill.name });
     this.playSound('levelUp');
     this.createConfetti();

@@ -21,7 +21,8 @@ service cloud.firestore {
              (data.keys().hasAll(['highestScore_takeover']) ? data.highestScore_takeover is number : true) &&
              (data.keys().hasAll(['highestScore_quiet']) ? data.highestScore_quiet is number : true) &&
              (data.keys().hasAll(['lifetimeSynergy']) ? data.lifetimeSynergy is number : true) &&
-             (data.keys().hasAll(['unlockedSkills']) ? data.unlockedSkills is list && data.unlockedSkills.size() <= 50 : true);
+             (data.keys().hasAll(['unlockedSkills']) ? data.unlockedSkills is list && data.unlockedSkills.size() <= 50 : true) &&
+             (data.keys().hasAll(['achievements']) ? data.achievements is list && data.achievements.size() <= 100 : true);
     }
 
     match /users/{userId} {
@@ -35,7 +36,7 @@ service cloud.firestore {
                        isValidUserProfile(incoming()) &&
                        incoming().createdAt == existing().createdAt &&
                        // Must only modify allowed fields
-                       incoming().diff(existing()).affectedKeys().hasOnly(['highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills']) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills', 'achievements']) &&
                        // High scores can only go up
                        (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_endless']) ? incoming().get('highestScore_endless', 0) >= existing().get('highestScore_endless', 0) : true) &&
                        (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_championship']) ? incoming().get('highestScore_championship', 0) >= existing().get('highestScore_championship', 0) : true) &&

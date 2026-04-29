@@ -26,6 +26,10 @@
         "unlockedSkills": {
           "type": "array",
           "items": { "type": "string" }
+        },
+        "achievements": {
+          "type": "array",
+          "items": { "type": "string" }
         }
       },
       "required": ["displayName"]
