@@ -741,10 +741,22 @@ export class App implements OnDestroy {
      }
   }
 
+  async login() {
+     try {
+         await this.fb.loginWithGoogle();
+     } catch (err: any) {
+         if (err.message && err.message.toLowerCase().includes('domain')) {
+             this.addLog("Login failed: Firebase authorized domains must be configured for this deployment URL.", "error");
+         } else {
+             this.addLog("Login failed: " + (err.message || String(err)), "error");
+         }
+     }
+  }
+
   acceptChallenge() {
      if (!this.fb.user()) {
          this.addLog("You must sign in to accept challenges.", "error");
-         this.fb.loginWithGoogle();
+         this.login();
          return;
      }
      const challenge = this.activeChallenge();
@@ -802,7 +814,7 @@ export class App implements OnDestroy {
 
   startGame(mode: 'endless' | 'championship' | 'takeover' | 'quiet' = 'endless') {
      if (!this.fb.user()) {
-        this.fb.loginWithGoogle();
+        this.login();
         return;
      }
 

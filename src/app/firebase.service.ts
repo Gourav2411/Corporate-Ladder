@@ -117,6 +117,7 @@ export class FirebaseService {
       }
     } catch (err) {
       console.error('Login Failed', err);
+      throw err;
     }
   }
 
@@ -269,9 +270,9 @@ export class FirebaseService {
 
   async createChallenge(score: number, mode: string): Promise<string | null> {
     const u = this.user();
-    if (!u) return null;
     
     try {
+      if (!u) throw new Error("Not logged in (using local fallback)");
       const challengeId = `${u.uid}_${Date.now()}`;
       const docData = {
         creatorId: u.uid,
@@ -285,13 +286,26 @@ export class FirebaseService {
       return challengeId;
     } catch (err) {
       console.error('Failed to create challenge:', err);
-      // Fallback: If firestore write fails, we can still generate a local fake ID so the user can copy the URL in the demo environment
-      const fallbackId = `local_${Date.now()}`;
+      // Fallback: If firestore write fails or not logged in, we generate a local fake ID
+      const fallbackId = `local_${Date.now()}_${score}_${mode}`;
       return fallbackId;
     }
   }
 
   async getChallenge(challengeId: string): Promise<Challenge | null> {
+    if (challengeId.startsWith('local_')) {
+        const parts = challengeId.split('_');
+        const score = parseInt(parts[2] || '1000', 10);
+        const mode = parts[3] || 'endless';
+        return {
+           id: challengeId,
+           creatorId: 'anon',
+           creatorName: 'Anonymous Executive',
+           targetScore: score,
+           gameMode: mode,
+           createdAt: serverTimestamp()
+        } as Challenge;
+    }
     try {
       const snap = await getDocFromServer(doc(db, 'challenges', challengeId));
       if (snap.exists()) {
