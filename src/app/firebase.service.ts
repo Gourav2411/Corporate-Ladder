@@ -83,6 +83,20 @@ export interface WatercoolerPost {
   channel: string;
   upvotes: number;
   createdAt: unknown;
+
+  isPoll?: boolean;
+  pollOptions?: string[];
+  pollVotes?: number[];
+  votedBy?: string[];
+}
+
+export interface WatercoolerReply {
+  id: string;
+  postId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  createdAt: unknown;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -514,20 +528,30 @@ export class FirebaseService {
      }
   }
 
-  async createWatercoolerPost(content: string, channel = 'general', isAnonymous = false) {
+  async createWatercoolerPost(content: string, channel = 'general', isAnonymous = false, pollOptions?: string[]) {
      const u = this.user();
      if (!u) throw new Error("Must be logged in to post");
      const profile = await this.getUserProfile();
      const name = isAnonymous ? 'Anonymous Drone' : (profile?.displayName || u.displayName || 'Anonymous Drone');
      const postId = `post_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-     await setDoc(doc(db, 'watercooler', postId), {
+     
+     const postData: any = {
         authorId: u.uid,
         authorName: name,
         content,
         channel,
         upvotes: 0,
         createdAt: serverTimestamp()
-     });
+     };
+
+     if (pollOptions && pollOptions.length > 0) {
+        postData.isPoll = true;
+        postData.pollOptions = pollOptions.slice(0, 4);
+        postData.pollVotes = new Array(Math.min(pollOptions.length, 4)).fill(0);
+        postData.votedBy = [];
+     }
+
+     await setDoc(doc(db, 'watercooler', postId), postData);
   }
 
   async upvoteWatercoolerPost(postId: string, currentUpvotes: number) {
@@ -536,5 +560,51 @@ export class FirebaseService {
      await setDoc(doc(db, 'watercooler', postId), {
         upvotes: currentUpvotes + 1
      }, { merge: true });
+  }
+
+  async voteOnPoll(postId: string, optionIndex: number, currentVotes: number[], currentVoters: string[]) {
+     const u = this.user();
+     if (!u) throw new Error("Must be logged in to vote");
+     
+     if (currentVoters.includes(u.uid)) {
+         throw new Error("Already voted");
+     }
+
+     const newVotes = [...currentVotes];
+     newVotes[optionIndex]++;
+
+     await setDoc(doc(db, 'watercooler', postId), {
+        pollVotes: newVotes,
+        votedBy: [...currentVoters, u.uid]
+     }, { merge: true });
+  }
+
+  async getWatercoolerReplies(postId: string): Promise<WatercoolerReply[]> {
+     try {
+        const q = query(
+           collection(db, `watercooler/${postId}/replies`),
+           orderBy('createdAt', 'asc'),
+           limit(100)
+        );
+        const snap = await getDocs(q);
+        return snap.docs.map(d => ({ id: d.id, postId, ...d.data() } as WatercoolerReply));
+     } catch (err) {
+        console.error("Failed to get watercooler replies", err);
+        return [];
+     }
+  }
+
+  async createWatercoolerReply(postId: string, content: string, isAnonymous = false) {
+     const u = this.user();
+     if (!u) throw new Error("Must be logged in to reply");
+     const profile = await this.getUserProfile();
+     const name = isAnonymous ? 'Anonymous Drone' : (profile?.displayName || u.displayName || 'Anonymous Drone');
+     const replyId = `reply_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+     await setDoc(doc(db, `watercooler/${postId}/replies`, replyId), {
+        authorId: u.uid,
+        authorName: name,
+        content: content.substring(0, 1000), // Enforce size
+        createdAt: serverTimestamp()
+     });
   }
 }
