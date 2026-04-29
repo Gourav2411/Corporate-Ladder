@@ -19,6 +19,7 @@ import {
   MultiplayerRoom,
   WatercoolerPost,
   WatercoolerChannel,
+  WatercoolerReply,
 } from "./firebase.service";
 import { AchievementService } from "./achievements.service";
 import { Unsubscribe, onSnapshot, doc } from "firebase/firestore";
@@ -1193,6 +1194,7 @@ export class App implements OnDestroy {
     | "require_login"
     | "onboarding"
     | "watercooler"
+    | "engagement"
   >("menu");
   tutorialStep = signal<number>(1);
   gameMode = signal<string>("endless");
@@ -1385,6 +1387,15 @@ export class App implements OnDestroy {
   newChannelName = signal("");
   newChannelDesc = signal("");
   isAnonymousPost = signal(false);
+
+  // Poll creation state
+  isCreatingPoll = signal(false);
+  pollOptions = signal<string[]>(["", ""]);
+
+  // Replies state
+  activeReplies = signal<Record<string, WatercoolerReply[]>>({});
+  showRepliesFor = signal<Record<string, boolean>>({});
+  newReplyContent = signal<Record<string, string>>({});
 
   AVAILABLE_MODES = [
     { id: "endless", name: "ENDLESS", icon: "📈", desc: "Standard Grinding" },
@@ -3211,17 +3222,65 @@ ${slackStatsStr ? "\n*Key Deliverables:*\n" + slackStatsStr : ""}
     }
 
     const chan = this.watercoolerChannel();
+    let options: string[] | undefined = undefined;
+
+    if (this.isCreatingPoll()) {
+      const filtered = this.pollOptions()
+        .map((o) => o.trim())
+        .filter((o) => o.length > 0);
+      if (filtered.length >= 2) {
+        options = filtered;
+      } else {
+        this.addLog("A poll requires at least 2 options.", "warning");
+        return;
+      }
+    }
 
     try {
       await this.fb.createWatercoolerPost(
         content,
         chan,
         this.isAnonymousPost(),
+        options,
       );
       this.newWatercoolerPost.set("");
+      this.isCreatingPoll.set(false);
+      this.pollOptions.set(["", ""]);
       await this.loadWatercoolerPosts();
     } catch {
       this.addLog("Failed to post message.", "error");
+    }
+  }
+
+  addPollOption() {
+    if (this.pollOptions().length < 4) {
+      this.pollOptions.update((opts) => [...opts, ""]);
+    }
+  }
+
+  updatePollOption(index: number, val: string) {
+    this.pollOptions.update((opts) => {
+      const n = [...opts];
+      n[index] = val;
+      return n;
+    });
+  }
+
+  async voteOnPoll(
+    postId: string,
+    optionIndex: number,
+    currentVotes: number[],
+    votedBy: string[] = [],
+  ) {
+    if (!this.fb.user()) {
+      this.addLog("Sign in to vote.", "error");
+      return;
+    }
+    try {
+      await this.fb.voteOnPoll(postId, optionIndex, currentVotes, votedBy);
+      await this.loadWatercoolerPosts();
+    } catch (err: any) {
+      this.addLog(err.message || "Failed to vote.", "error");
     }
   }
 
@@ -3232,6 +3291,150 @@ ${slackStatsStr ? "\n*Key Deliverables:*\n" + slackStatsStr : ""}
     }
     await this.fb.upvoteWatercoolerPost(postId, currentUpvotes);
     await this.loadWatercoolerPosts();
+  }
+
+  async toggleReplies(postId: string) {
+    const current = this.showRepliesFor();
+    if (!current[postId]) {
+      current[postId] = true;
+      this.showRepliesFor.set({ ...current });
+      const replies = await this.fb.getWatercoolerReplies(postId);
+      this.activeReplies.update((r) => ({ ...r, [postId]: replies }));
+    } else {
+      current[postId] = false;
+      this.showRepliesFor.set({ ...current });
+    }
+  }
+
+  updateReplyContent(postId: string, content: string) {
+    this.newReplyContent.update((c) => ({ ...c, [postId]: content }));
+  }
+
+  async createReply(postId: string) {
+    const content = (this.newReplyContent()[postId] || "").trim();
+    if (!content) return;
+    if (!this.fb.user()) {
+      this.addLog("Sign in to reply.", "error");
+      return;
+    }
+    try {
+      await this.fb.createWatercoolerReply(
+        postId,
+        content,
+        this.isAnonymousPost(),
+      );
+      this.newReplyContent.update((c) => ({ ...c, [postId]: "" }));
+      const replies = await this.fb.getWatercoolerReplies(postId);
+      this.activeReplies.update((r) => ({ ...r, [postId]: replies }));
+    } catch (err) {
+      this.addLog("Failed to reply.", "error");
+    }
+  }
+
+  completeEngagement(type: string) {
+    if (type === "pulse") {
+      this.synergy.update((b) => b + 50);
+      this.synergyBoostTimer.set(100);
+      this.addLog(
+        "Pulse Survey completed. Management is very happy.",
+        "success",
+      );
+    } else if (type === "pizza") {
+      this.synergy.update((b) => b + 20);
+      this.teamMorale.update((m) => Math.min(100, m + 5));
+      this.addLog("Attended virtual pizza party. It was awkward.", "info");
+    } else if (type === "security") {
+      this.synergy.update((b) => b + 100);
+      this.addLog(
+        "Cybersecurity training passed. Please do not click links.",
+        "success",
+      );
+    } else if (type === "trust") {
+      this.synergyBoostTimer.set(200);
+      this.teamMorale.update((m) => Math.min(100, m + 20));
+      this.addLog("Trust fall completed. Synergy maximized.", "success");
+    } else if (type === "daily") {
+      const lastDaily = localStorage.getItem("lastDailyStandup");
+      const msPerDay = 1000 * 60 * 60 * 24;
+      if (!lastDaily || Date.now() - parseInt(lastDaily, 10) > msPerDay) {
+        localStorage.setItem("lastDailyStandup", Date.now().toString());
+        this.synergy.update((b) => b + 500);
+        this.addLog("Daily Standup completed. +500 Synergy!", "success");
+      } else {
+        this.addLog("You already attended the Daily Standup today.", "warning");
+        return; // Don't redirect back to menu
+      }
+    }
+
+    // Switch back to menu after a short delay
+    if (type !== "daily" && type !== "trivia") {
+      setTimeout(() => {
+        this.gameState.set("menu");
+      }, 1500);
+    }
+  }
+
+  // Trivia state
+  showTrivia = signal(false);
+  activeTrivia = signal<{ q: string; opts: string[]; ans: number } | null>(
+    null,
+  );
+
+  startTrivia() {
+    const questions = [
+      {
+        q: "What does 'Boil the ocean' mean?",
+        opts: [
+          "Make tea",
+          "Take on an impossibly large task",
+          "Solve global warming",
+          "Work overtime",
+        ],
+        ans: 1,
+      },
+      {
+        q: "What does 'Move the needle' mean?",
+        opts: [
+          "Sewing",
+          "Change the objective",
+          "Make a noticeable impact",
+          "Reschedule",
+        ],
+        ans: 2,
+      },
+      {
+        q: "What does 'Circle back' mean?",
+        opts: [
+          "Go home",
+          "Discuss this later",
+          "Draw a shape",
+          "Delete the email",
+        ],
+        ans: 1,
+      },
+      {
+        q: "What does 'Synergy' actually mean?",
+        opts: ["1+1=3", "Free coffee", "More meetings", "Nothing"],
+        ans: 0,
+      },
+    ];
+    this.activeTrivia.set(
+      questions[Math.floor(Math.random() * questions.length)],
+    );
+    this.showTrivia.set(true);
+  }
+
+  answerTrivia(index: number) {
+    const current = this.activeTrivia();
+    if (!current) return;
+    if (index === current.ans) {
+      this.synergy.update((s) => s + 200);
+      this.addLog("Correct! +200 Synergy.", "success");
+    } else {
+      this.teamMorale.update((m) => Math.max(0, m - 5));
+      this.addLog("Incorrect jargon usage. HR is watching.", "error");
+    }
+    this.showTrivia.set(false);
   }
 
   downloadReviewCard() {
