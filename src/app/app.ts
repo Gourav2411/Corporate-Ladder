@@ -1392,6 +1392,14 @@ export class App implements OnDestroy {
   isCreatingPoll = signal(false);
   pollOptions = signal<string[]>(["", ""]);
 
+  // Posts state
+  expandedPosts = signal<Record<string, boolean>>({});
+  isComposingPost = signal(false);
+
+  toggleExpandedPost(postId: string) {
+    this.expandedPosts.update(s => ({ ...s, [postId]: !s[postId] }));
+  }
+
   // Replies state
   activeReplies = signal<Record<string, WatercoolerReply[]>>({});
   showRepliesFor = signal<Record<string, boolean>>({});
@@ -3246,6 +3254,7 @@ ${slackStatsStr ? "\n*Key Deliverables:*\n" + slackStatsStr : ""}
       this.newWatercoolerPost.set("");
       this.isCreatingPoll.set(false);
       this.pollOptions.set(["", ""]);
+      this.isComposingPost.set(false);
       await this.loadWatercoolerPosts();
     } catch {
       this.addLog("Failed to post message.", "error");
