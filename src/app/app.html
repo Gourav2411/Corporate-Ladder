@@ -729,31 +729,31 @@
             </button>
           </div>
 
-          <div class="flex flex-col md:flex-row gap-6 w-full h-full min-h-0">
+          <div class="flex-1 flex flex-col md:flex-row gap-6 w-full min-h-0">
             <!-- Sidebar (Channels) -->
             <div
-              class="w-full md:w-64 shrink-0 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-green-500/20 pb-4 md:pb-0 pr-0 md:pr-4 overflow-y-auto custom-scrollbar"
+              class="w-full md:w-64 shrink-0 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-green-500/20 pb-4 md:pb-0 pr-0 md:pr-4 overflow-x-hidden md:overflow-y-auto custom-scrollbar"
             >
               <div
-                class="text-xs font-bold text-green-500 uppercase tracking-widest mb-2 data-mono"
+                class="text-xs font-bold text-green-500 uppercase tracking-widest md:mb-2 data-mono shrink-0"
               >
                 Corporate Channels
               </div>
 
-              <div class="flex flex-col gap-2">
+              <div class="flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto custom-scrollbar pb-2 md:pb-0">
                 <button
                   (click)="selectChannel('general'); $event.stopPropagation()"
-                  class="px-4 py-2 text-left font-bold border rounded-none transition-all outline-none"
+                  class="px-4 py-2 text-left font-bold border rounded-none transition-all outline-none whitespace-nowrap"
                   [ngClass]="watercoolerChannel() === 'general' ? 'bg-green-900/40 border-green-400 text-green-300' : 'bg-transparent border-transparent text-slate-400 hover:bg-[#1E293B] hover:text-slate-200'"
                 >
                   # general
                 </button>
 
                 @for (chan of watercoolerChannels(); track chan.id) {
-                <div class="flex items-start gap-1 group relative">
+                <div class="flex items-start gap-1 group relative shrink-0 max-w-[200px] md:max-w-none">
                   <button
                     (click)="selectChannel(chan.name); $event.stopPropagation()"
-                    class="flex-1 px-4 py-2 text-left font-bold border rounded-none transition-all outline-none flex flex-col"
+                    class="flex-1 px-4 py-2 text-left font-bold border rounded-none transition-all outline-none flex flex-col max-w-full"
                     [ngClass]="watercoolerChannel() === chan.name ? 'bg-green-900/40 border-green-400 text-green-300' : 'bg-transparent border-transparent text-slate-400 hover:bg-[#1E293B] hover:text-slate-200'"
                   >
                     <span># {{ chan.name }}</span>
