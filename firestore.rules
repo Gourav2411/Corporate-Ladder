@@ -16,6 +16,7 @@ service cloud.firestore {
     function isValidUserProfile(data) {
       return data.keys().hasAny(['displayName', 'createdAt', 'highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills']) &&
              data.get('displayName', '') is string && data.get('displayName', '').size() <= 100 &&
+             (data.keys().hasAll(['avatarId']) ? data.avatarId is string && data.avatarId.size() <= 50 : true) &&
              (data.keys().hasAll(['highestScore_endless']) ? data.highestScore_endless is number : true) &&
              (data.keys().hasAll(['highestScore_championship']) ? data.highestScore_championship is number : true) &&
              (data.keys().hasAll(['highestScore_takeover']) ? data.highestScore_takeover is number : true) &&
@@ -36,7 +37,7 @@ service cloud.firestore {
                        isValidUserProfile(incoming()) &&
                        incoming().createdAt == existing().createdAt &&
                        // Must only modify allowed fields
-                       incoming().diff(existing()).affectedKeys().hasOnly(['highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills', 'achievements']) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'avatarId', 'highestScore_endless', 'highestScore_championship', 'highestScore_takeover', 'highestScore_quiet', 'lifetimeSynergy', 'unlockedSkills', 'achievements']) &&
                        // High scores can only go up
                        (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_endless']) ? incoming().get('highestScore_endless', 0) >= existing().get('highestScore_endless', 0) : true) &&
                        (incoming().diff(existing()).affectedKeys().hasAny(['highestScore_championship']) ? incoming().get('highestScore_championship', 0) >= existing().get('highestScore_championship', 0) : true) &&
@@ -87,6 +88,40 @@ service cloud.firestore {
       allow create: if isSignedIn() && isValidId(roomId);
       allow update: if isSignedIn(); // Let any player join and update their score
       allow delete: if isSignedIn() && existing().hostId == request.auth.uid;
+    }
+
+    function isValidWatercoolerChannel(data) {
+       return data.keys().hasAll(['name', 'description', 'creatorId', 'createdAt']) &&
+              data.name is string && data.name.size() > 0 && data.name.size() <= 30 &&
+              data.name.matches('^[a-zA-Z0-9_\\-]+$') &&
+              data.description is string && data.description.size() <= 200 &&
+              data.creatorId == request.auth.uid &&
+              data.createdAt == request.time;
+    }
+
+    match /watercooler_channels/{channelId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(channelId) && isValidWatercoolerChannel(incoming());
+      allow delete: if isOwner(existing().creatorId);
+    }
+
+    function isValidWatercoolerPost(data) {
+       return data.keys().hasAll(['authorId', 'authorName', 'content', 'channel', 'upvotes', 'createdAt']) &&
+              data.authorId == request.auth.uid &&
+              data.authorName is string && data.authorName.size() <= 100 &&
+              data.content is string && data.content.size() <= 2000 &&
+              data.channel is string && data.channel.size() <= 50 &&
+              data.upvotes is number && data.upvotes >= 0 &&
+              data.createdAt == request.time;
+    }
+
+    match /watercooler/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidWatercoolerPost(incoming());
+      allow update: if isSignedIn() && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['upvotes']) &&
+                    incoming().upvotes == existing().upvotes + 1;
+      allow delete: if isOwner(existing().authorId);
     }
   }
 }

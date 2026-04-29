@@ -1,7 +1,7 @@
 import { Injectable, signal } from '@angular/core';
 import { FirebaseApp, initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, User, onAuthStateChanged, Auth } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp, getDocFromServer, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, collection, query, orderBy, limit, getDocs, serverTimestamp, getDocFromServer, Firestore, deleteDoc } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export let app: FirebaseApp;
@@ -57,6 +57,7 @@ export interface Challenge {
 
 export interface UserProfile {
   displayName: string;
+  avatarId?: string;
   highestScore_endless?: number;
   highestScore_championship?: number;
   highestScore_takeover?: number;
@@ -64,6 +65,24 @@ export interface UserProfile {
   lifetimeSynergy?: number;
   unlockedSkills?: string[];
   achievements?: string[];
+}
+
+export interface WatercoolerChannel {
+  id: string;
+  name: string;
+  description: string;
+  creatorId: string;
+  createdAt: unknown;
+}
+
+export interface WatercoolerPost {
+  id: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+  channel: string;
+  upvotes: number;
+  createdAt: unknown;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -96,7 +115,7 @@ export class FirebaseService {
     }
   }
 
-  async loginWithGoogle() {
+  async loginWithGoogle(handle?: string) {
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
@@ -105,7 +124,7 @@ export class FirebaseService {
       const snap = await getDoc(userRef);
       if (!snap.exists()) {
         await setDoc(userRef, {
-          displayName: result.user.displayName || 'Corporate Drone',
+          displayName: handle || 'Anonymous Drone',
           createdAt: serverTimestamp(),
           highestScore_endless: 0,
           highestScore_championship: 0,
@@ -114,6 +133,9 @@ export class FirebaseService {
           lifetimeSynergy: 0,
           unlockedSkills: []
         });
+      } else if (handle && snap.data()['displayName'] !== handle) {
+        // Update their display name if they provide a new handle
+        await setDoc(userRef, { displayName: handle }, { merge: true });
       }
     } catch (err) {
       console.error('Login Failed', err);
@@ -128,6 +150,31 @@ export class FirebaseService {
   isAdmin(): boolean {
     const email = this.user()?.email;
     return email === 'gourav.k.24@gmail.com' || email === '24gourav11@gmail.com';
+  }
+
+  private handleCache = new Map<string, string>();
+
+  async getHandle(): Promise<string> {
+    const u = this.user();
+    if (!u) return 'Anonymous Drone';
+    if (this.handleCache.has(u.uid)) return this.handleCache.get(u.uid)!;
+    const profile = await this.getUserProfile();
+    const name = profile?.displayName || 'Anonymous Drone';
+    this.handleCache.set(u.uid, name);
+    return name;
+  }
+
+  async updateHandle(newHandle: string) {
+    const u = this.user();
+    if (!u) return;
+    await setDoc(doc(db, 'users', u.uid), { displayName: newHandle }, { merge: true });
+    this.handleCache.set(u.uid, newHandle);
+  }
+
+  async updateAvatar(avatarId: string) {
+    const u = this.user();
+    if (!u) return;
+    await setDoc(doc(db, 'users', u.uid), { avatarId }, { merge: true });
   }
 
   async submitScore(score: number, mode: string, currentTitle?: string) {
@@ -155,9 +202,10 @@ export class FirebaseService {
 
       // 2. Add to global leaderboard collection
       const scoreId = `${u.uid}_${mode}_${Date.now()}`;
+      const handle = await this.getHandle();
       const payload: LeaderboardEntry = {
         userId: u.uid,
-        displayName: u.displayName || 'Corporate Drone',
+        displayName: handle,
         score: score,
         mode: mode,
         timestamp: serverTimestamp()
@@ -273,10 +321,11 @@ export class FirebaseService {
     
     try {
       if (!u) throw new Error("Not logged in (using local fallback)");
+      const handle = await this.getHandle();
       const challengeId = `${u.uid}_${Date.now()}`;
       const docData = {
         creatorId: u.uid,
-        creatorName: (u.displayName || 'Corporate Drone').substring(0, 90),
+        creatorName: handle.substring(0, 90),
         targetScore: Math.max(0, Math.floor(score || 0)),
         gameMode: String(mode).substring(0, 20),
         createdAt: serverTimestamp()
@@ -325,12 +374,13 @@ export class FirebaseService {
      const u = this.user();
      if (!u) return false;
      try {
+       const handle = await this.getHandle();
        await setDoc(doc(db, 'multiplayer_rooms', roomId), {
           hostId: u.uid,
           status: 'waiting',
           gameMode: mode,
           players: {
-             [u.uid]: { uid: u.uid, name: u.displayName || 'Drone', score: 0, status: 'waiting' }
+             [u.uid]: { uid: u.uid, name: handle, score: 0, status: 'waiting' }
           },
           createdAt: serverTimestamp()
        });
@@ -345,9 +395,10 @@ export class FirebaseService {
      const u = this.user();
      if (!u) return false;
      try {
+       const handle = await this.getHandle();
        await setDoc(doc(db, 'multiplayer_rooms', roomId), {
           players: {
-             [u.uid]: { uid: u.uid, name: u.displayName || 'Drone', score: 0, status: 'waiting' }
+             [u.uid]: { uid: u.uid, name: handle, score: 0, status: 'waiting' }
           }
        }, { merge: true });
        return true;
@@ -361,9 +412,10 @@ export class FirebaseService {
      const u = this.user();
      if (!u) return;
      try {
+       const handle = await this.getHandle();
        await setDoc(doc(db, 'multiplayer_rooms', roomId), {
           players: {
-             [u.uid]: { uid: u.uid, name: u.displayName || 'Drone', score, status }
+             [u.uid]: { uid: u.uid, name: handle, score, status }
           }
        }, { merge: true });
      } catch (err) {
@@ -387,12 +439,13 @@ export class FirebaseService {
      if (!u) return;
      const sabId = `${u.uid}_${Date.now()}`;
      try {
+       const handle = await this.getHandle();
        await setDoc(doc(db, 'multiplayer_rooms', roomId), {
           sabotages: {
              [sabId]: {
                 type,
                 targetId,
-                senderName: u.displayName || 'Drone',
+                senderName: handle,
                 timestamp: Date.now()
              }
           }
@@ -400,5 +453,88 @@ export class FirebaseService {
      } catch (err) {
        console.error("Send sabotage failed", err);
      }
+  }
+
+  // --- WATERCOOLER ---
+  async getWatercoolerChannels(): Promise<WatercoolerChannel[]> {
+      try {
+         const q = query(collection(db, 'watercooler_channels'), orderBy('createdAt', 'desc'), limit(100));
+         const snap = await getDocs(q);
+         return snap.docs.map(d => ({ id: d.id, ...d.data() } as WatercoolerChannel));
+      } catch (err) {
+         console.error("Failed to get watercooler channels", err);
+         return [];
+      }
+  }
+
+  async createWatercoolerChannel(name: string, description: string) {
+     const u = this.user();
+     if (!u) throw new Error("Must be logged in to create a channel");
+     
+     // Normalize name (alphanumeric and dashes/underscores)
+     const normalizedName = name.replace(/[^a-zA-Z0-9_\-]/g, '').substring(0, 30);
+     if (!normalizedName) throw new Error("Invalid channel name");
+     
+     const id = `channel_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+     await setDoc(doc(db, 'watercooler_channels', id), {
+        name: normalizedName,
+        description: description.substring(0, 200),
+        creatorId: u.uid,
+        createdAt: serverTimestamp()
+     });
+     return normalizedName;
+  }
+
+  async deleteWatercoolerChannel(id: string) {
+     const u = this.user();
+     if (!u) return false;
+     try {
+        await deleteDoc(doc(db, 'watercooler_channels', id));
+        return true;
+     } catch (err) {
+        console.error("Failed to delete channel", err);
+        return false;
+     }
+  }
+
+  async getWatercoolerPosts(channel = 'general'): Promise<WatercoolerPost[]> {
+     try {
+        const q = query(
+           collection(db, 'watercooler'),
+           orderBy('createdAt', 'desc'),
+           limit(50)
+        );
+        const snap = await getDocs(q);
+        return snap.docs
+           .map(d => ({ id: d.id, ...d.data() } as WatercoolerPost))
+           .filter(p => p.channel === channel);
+     } catch (err) {
+        console.error("Failed to get watercooler posts", err);
+        return [];
+     }
+  }
+
+  async createWatercoolerPost(content: string, channel = 'general', isAnonymous = false) {
+     const u = this.user();
+     if (!u) throw new Error("Must be logged in to post");
+     const profile = await this.getUserProfile();
+     const name = isAnonymous ? 'Anonymous Drone' : (profile?.displayName || u.displayName || 'Anonymous Drone');
+     const postId = `post_${Date.now()}_${Math.floor(Math.random()*1000)}`;
+     await setDoc(doc(db, 'watercooler', postId), {
+        authorId: u.uid,
+        authorName: name,
+        content,
+        channel,
+        upvotes: 0,
+        createdAt: serverTimestamp()
+     });
+  }
+
+  async upvoteWatercoolerPost(postId: string, currentUpvotes: number) {
+     const u = this.user();
+     if (!u) return;
+     await setDoc(doc(db, 'watercooler', postId), {
+        upvotes: currentUpvotes + 1
+     }, { merge: true });
   }
 }

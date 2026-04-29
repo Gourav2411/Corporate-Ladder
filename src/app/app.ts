@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, signal, computed, effect, ViewChild, ElementRef, OnDestroy, HostListener, afterNextRender, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
-import { FirebaseService, Challenge, MultiplayerRoom } from './firebase.service';
+import { FirebaseService, Challenge, MultiplayerRoom, WatercoolerPost, WatercoolerChannel } from './firebase.service';
 import { AchievementService } from './achievements.service';
 import { Unsubscribe, onSnapshot, doc } from 'firebase/firestore';
 import { db } from './firebase.service';
@@ -267,7 +267,7 @@ export class App implements OnDestroy {
   emailsSynergized = 0;
   doersFired = 0;
   
-  gameState = signal<'menu' | 'tutorial' | 'playing' | 'story' | 'gameover' | 'account' | 'leaderboard' | 'wardrobe' | 'skills' | 'multiplayer_lobby' | 'require_login'>('menu');
+  gameState = signal<'menu' | 'tutorial' | 'playing' | 'story' | 'gameover' | 'account' | 'leaderboard' | 'wardrobe' | 'skills' | 'multiplayer_lobby' | 'require_login' | 'onboarding' | 'watercooler'>('menu');
   tutorialStep = signal<number>(1);
   gameMode = signal<string>('endless');
   championshipTimeLeft = signal<number>(120);
@@ -316,6 +316,16 @@ export class App implements OnDestroy {
   firebaseInfoMode = signal<string>('endless');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leaderboards = signal<any[]>([]);
+
+  // Watercooler
+  watercoolerPosts = signal<WatercoolerPost[]>([]);
+  watercoolerChannel = signal<string>('general');
+  watercoolerChannels = signal<WatercoolerChannel[]>([]);
+  newWatercoolerPost = signal<string>('');
+  isCreatingChannel = signal(false);
+  newChannelName = signal('');
+  newChannelDesc = signal('');
+  isAnonymousPost = signal(false);
 
   AVAILABLE_MODES = [
     { id: 'endless', name: 'ENDLESS', icon: '📈', desc: 'Standard Grinding' },
@@ -378,7 +388,7 @@ export class App implements OnDestroy {
   private animationFrameId = 0;
   private lastTime = 0;
   private frameCount = 0;
-  private baseSpeed = 4;
+  private baseSpeed = 5;
   private coffeeBoostTimer = 0;
   private groundLevel = 400;
   
@@ -449,21 +459,7 @@ export class App implements OnDestroy {
       // Cloud Sync listener when user changes
       const u = this.fb.user();
       if (u) {
-         this.fb.getUserProfile().then(p => {
-             if (p) {
-                 if (p.lifetimeSynergy !== undefined) {
-                     this.totalSynergy.set(p.lifetimeSynergy);
-                     if (typeof window !== 'undefined') localStorage.setItem('corp_meta_synergy', p.lifetimeSynergy.toString());
-                 }
-                 if (p.unlockedSkills !== undefined) {
-                     this.unlockedSkills.set(p.unlockedSkills);
-                     if (typeof window !== 'undefined') localStorage.setItem('corp_skills', JSON.stringify(p.unlockedSkills));
-                 }
-                 if (p.achievements !== undefined) {
-                     this.achievements.initUnlocked(p.achievements);
-                 }
-             }
-         });
+         this.loadUserProfile();
       }
     }, { allowSignalWrites: true });
 
@@ -771,12 +767,21 @@ export class App implements OnDestroy {
      }
   }
 
+  onboardingUsername = signal<string>('');
+
   async login() {
      try {
-         await this.fb.loginWithGoogle();
+         await this.fb.loginWithGoogle(this.onboardingUsername().trim() || undefined);
+         if (this.gameState() === 'onboarding') {
+            this.startGame(this.gameMode());
+         }
      } catch (err) {
          if (err instanceof Error && err.message.toLowerCase().includes('domain')) {
-             this.addLog("Login failed: Firebase authorized domains must be configured for this deployment URL.", "error");
+             this.addLog(`Login failed: Please add "${window.location.hostname}" to your Firebase Authorized Domains in the Firebase Console (Authentication > Settings > Authorized domains).`, "error");
+         } else if (err instanceof Error && err.message.toLowerCase().includes('popup-closed')) {
+             this.addLog("Login failed: The sign in popup was closed. Please try again.", "error");
+         } else if (err instanceof Error && err.message.toLowerCase().includes('popup-blocked')) {
+             this.addLog("Login failed: The sign in popup was blocked by your browser. Please allow popups for this site.", "error");
          } else {
              this.addLog("Login failed: " + (err instanceof Error ? err.message : String(err)), "error");
          }
@@ -843,6 +848,12 @@ export class App implements OnDestroy {
   }
 
   startGame(mode = 'endless') {
+     if (!this.fb.user() && this.gameState() !== 'onboarding') {
+        this.gameMode.set(mode);
+        this.gameState.set('onboarding');
+        return;
+     }
+
      this.gameMode.set(mode);
      if (typeof window !== 'undefined' && !localStorage.getItem('corp_tutorial_done')) {
          this.tutorialStep.set(1);
@@ -1028,7 +1039,7 @@ export class App implements OnDestroy {
          this.baseSpeed = 3.5;
          this.addLog(m + " mode activated. Network lag simulated.", 'info');
      } else {
-         this.baseSpeed = 4;
+         this.baseSpeed = 5;
          this.addLog(`Started a new run in ${m} mode.`, 'info');
      }
      
@@ -1321,7 +1332,28 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
      this.loadUserProfile();
   }
 
-  userProfile = signal<{endless: number, champion: number, takeover: number, quiet: number, synergy: number, skills: number} | null>(null);
+  userProfile = signal<{endless: number, champion: number, takeover: number, quiet: number, synergy: number, skills: number, displayName: string, avatarId: string} | null>(null);
+
+  isEditingHandle = signal(false);
+  editHandleValue = signal('');
+  
+  AVAILABLE_AVATARS = [
+     { id: 'drone_1', emoji: '🤖' },
+     { id: 'drone_2', emoji: '👽' },
+     { id: 'drone_3', emoji: '🥷' },
+     { id: 'drone_4', emoji: '🕵️' },
+     { id: 'drone_5', emoji: '🧛' },
+     { id: 'drone_6', emoji: '🧜‍♀️' },
+     { id: 'drone_7', emoji: '🧟' },
+     { id: 'drone_8', emoji: '🧞' },
+  ];
+
+  getAvatarEmoji() {
+      const id = this.userProfile()?.avatarId;
+      if (!id) return this.AVAILABLE_AVATARS[0].emoji;
+      const f = this.AVAILABLE_AVATARS.find(a => a.id === id);
+      return f ? f.emoji : this.AVAILABLE_AVATARS[0].emoji;
+  }
 
   async loadUserProfile() {
      const p = await this.fb.getUserProfile();
@@ -1332,18 +1364,135 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
            takeover: p.highestScore_takeover || 0,
            quiet: p.highestScore_quiet || 0,
            synergy: p.lifetimeSynergy || 0,
-           skills: p.unlockedSkills?.length || 0
+           skills: p.unlockedSkills?.length || 0,
+           displayName: p.displayName || 'Anonymous Drone',
+           avatarId: p.avatarId || 'drone_1'
         });
+        
+        if (p.lifetimeSynergy !== undefined) {
+           this.totalSynergy.set(p.lifetimeSynergy);
+           if (typeof window !== 'undefined') localStorage.setItem('corp_meta_synergy', p.lifetimeSynergy.toString());
+        }
+        if (p.unlockedSkills !== undefined) {
+           this.unlockedSkills.set(p.unlockedSkills);
+           if (typeof window !== 'undefined') localStorage.setItem('corp_skills', JSON.stringify(p.unlockedSkills));
+        }
+        
+        this.editHandleValue.set(p.displayName || 'Anonymous Drone');
         if (p.achievements) {
            this.achievements.initUnlocked(p.achievements);
         }
      }
   }
 
+  async saveHandle() {
+     const newHandle = this.editHandleValue().trim();
+     if (!newHandle) return;
+     if (this.fb.user()) {
+         try {
+             await this.fb.updateHandle(newHandle);
+             await this.loadUserProfile();
+             this.isEditingHandle.set(false);
+         } catch {
+             this.addLog("Failed to update handle", "error");
+         }
+     }
+  }
+
+  async setAvatar(avatarId: string) {
+      if (this.fb.user()) {
+          try {
+              await this.fb.updateAvatar(avatarId);
+              await this.loadUserProfile();
+          } catch {
+              this.addLog("Failed to update avatar", "error");
+          }
+      }
+  }
+
   shareToTwitter() {
      const url = window.location.origin;
      const text = encodeURIComponent(this.linkedInPost + `\n\nPlay Corporate Ladder Simulator now!\n${url}\nBuilt by @gourav_kondadadi`);
      window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank');
+  }
+
+  async loadWatercoolerChannels() {
+     const channels = await this.fb.getWatercoolerChannels();
+     this.watercoolerChannels.set(channels);
+  }
+
+  async loadWatercoolerPosts() {
+     this.watercoolerPosts.set([]);
+     const posts = await this.fb.getWatercoolerPosts(this.watercoolerChannel());
+     this.watercoolerPosts.set(posts);
+  }
+
+  async createNewChannel() {
+      const name = this.newChannelName().trim();
+      const desc = this.newChannelDesc().trim();
+      if (!name) return;
+      if (!this.fb.user()) {
+         this.addLog("Sign in to create a channel.", "error");
+         return;
+      }
+      try {
+          const actualName = await this.fb.createWatercoolerChannel(name, desc);
+          this.addLog(`Channel #${actualName} created!`, 'info');
+          this.isCreatingChannel.set(false);
+          this.newChannelName.set('');
+          this.newChannelDesc.set('');
+          await this.loadWatercoolerChannels();
+          this.selectChannel(actualName);
+      } catch (err) {
+          this.addLog("Failed to create channel: " + (err instanceof Error ? err.message : String(err)), 'error');
+      }
+  }
+
+  async deleteChannel(id: string) {
+     if (!this.fb.user()) return;
+     const success = await this.fb.deleteWatercoolerChannel(id);
+     if (success) {
+         this.addLog("Channel deleted.", "info");
+         if (this.watercoolerChannel() === this.watercoolerChannels().find(c => c.id === id)?.name) {
+             this.selectChannel('general');
+         }
+         await this.loadWatercoolerChannels();
+     } else {
+         this.addLog("Failed to delete channel.", "error");
+     }
+  }
+
+  selectChannel(channel: string) {
+      this.watercoolerChannel.set(channel);
+      this.loadWatercoolerPosts();
+  }
+
+  async createWatercoolerPost() {
+     const content = this.newWatercoolerPost().trim();
+     if (!content) return;
+     if (!this.fb.user()) {
+        this.addLog("Sign in with Google to join the Watercooler discussion.", "error");
+        return;
+     }
+
+     const chan = this.watercoolerChannel();
+
+     try {
+       await this.fb.createWatercoolerPost(content, chan, this.isAnonymousPost());
+       this.newWatercoolerPost.set('');
+       await this.loadWatercoolerPosts();
+     } catch {
+       this.addLog("Failed to post message.", "error");
+     }
+  }
+
+  async upvoteWatercoolerPost(postId: string, currentUpvotes: number) {
+     if (!this.fb.user()) {
+        this.addLog("Sign in to upvote.", "error");
+        return;
+     }
+     await this.fb.upvoteWatercoolerPost(postId, currentUpvotes);
+     await this.loadWatercoolerPosts();
   }
 
   downloadReviewCard() {
@@ -1925,8 +2074,8 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
 
     const currentSpeed = (this.baseSpeed + (this.coffeeBoostTimer > 0 ? 2 : 0));
 
-    // Spawn Blocks
-    if (this.frameCount % 250 === 0) {
+    // Spawn Blocks (Upper management block)
+    if (this.frameCount % 180 === 0) {
       this.blocks.push({
         x: this.canvasRef.nativeElement.width,
         y: this.groundLevel - this.player.height - 60, // Always reachable above head
@@ -1963,7 +2112,8 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
 
     // Spawn obstacles
     // Speed increases slightly over time
-    const spawnRate = Math.max(40, 100 - Math.floor(this.frameCount / 200));
+    // Mobile friendly: lower minimum bounds for faster pacing
+    const spawnRate = Math.max(25, 60 - Math.floor(this.frameCount / 120));
     if (this.frameCount % spawnRate === 0) {
       const isHurdle = (Math.random() > 0.6); // 40% chance of an actionable item
       

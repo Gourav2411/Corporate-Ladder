@@ -15,8 +15,10 @@
       @if (fb.user(); as u) {
          <button (click)="openLeaderboard('endless')" class="hidden sm:block text-xs font-bold text-slate-400 hover:text-cyan-400 transition-colors title-display">RANKINGS</button>
          <button (click)="openAccount()" class="flex items-center gap-2 bg-[#0A0A15] brutal-border hover:bg-[#151525] px-1 sm:pl-1 md:pl-2 sm:pr-2 md:pr-4 py-1.5 rounded-none text-xs font-bold transition-all title-display mt-[2px] mb-[2px]">
-            <img [src]="u.photoURL || 'https://picsum.photos/seed/user/32/32'" alt="Avatar" referrerpolicy="no-referrer" class="w-5 h-5 md:w-5 md:h-5 border border-cyan-500"/>
-            <span class="hidden sm:inline truncate max-w-[80px] text-cyan-50">{{ u.displayName }}</span>
+            <div class="w-5 h-5 md:w-5 md:h-5 border border-cyan-500 flex items-center justify-center text-xs bg-[#1E293B]">
+               {{ getAvatarEmoji() }}
+            </div>
+            <span class="hidden sm:inline truncate max-w-[80px] text-cyan-50">{{ userProfile()?.displayName || u.displayName }}</span>
          </button>
       }
 
@@ -272,6 +274,11 @@
                            <span class="font-black title-display text-xs sm:text-sm md:text-lg uppercase mb-0.5 sm:mb-1">NETWORK_MODE</span>
                            <span class="text-[8px] sm:text-[10px] md:text-xs data-mono text-fuchsia-500/60">LIVE // MULTIPLAYER // ROOMS</span>
                         </button>
+                        <button (click)="gameState.set('watercooler'); loadWatercoolerPosts(); loadWatercoolerChannels(); $event.stopPropagation()" class="md:col-span-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 bg-[#0A0A15] border border-green-500/50 text-green-500 rounded-none hover:bg-green-900/20 hover:border-green-400 hover:shadow-[inset_0_0_20px_rgba(34,197,94,0.2)] transition-all flex flex-col items-center group pointer-events-auto shrink-0">
+                           <span class="text-xl sm:text-2xl md:text-3xl mb-1 grayscale group-hover:grayscale-0 transition-all duration-300">☕</span>
+                           <span class="font-black title-display text-xs sm:text-sm md:text-lg uppercase mb-0.5 sm:mb-1">THE_WATERCOOLER</span>
+                           <span class="text-[8px] sm:text-[10px] md:text-xs data-mono text-green-500/60">ANONYMOUS CHANNELS // POLITICS</span>
+                        </button>
                     </div>
 
                     <div class="mt-4 sm:mt-6 md:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full justify-center max-w-md md:max-w-none shrink-0">
@@ -293,6 +300,127 @@
                        </button>
                     </div>
                  }
+               </div>
+            </div>
+          }
+
+          @if (gameState() === 'watercooler') {
+            <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col p-4 sm:p-8 overflow-y-auto w-full max-w-4xl mx-auto rounded-none shadow-[10px_10px_0_rgba(34,197,94,0.1)] m-auto h-full sm:h-[95%] border-4 border-green-500/40 custom-scrollbar">
+               <div class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-8 border-b-2 border-green-500/20 pb-3 sm:pb-4 mt-2 sm:mt-0 gap-4">
+                  <div class="flex items-center gap-3">
+                     <span class="text-3xl grayscale">☕</span>
+                     <div>
+                        <h2 class="text-2xl sm:text-3xl font-black text-green-400 title-display uppercase outline-text">The Watercooler</h2>
+                        <div class="text-[10px] text-green-500/60 data-mono uppercase tracking-widest">End-to-End Anonymous Complaints</div>
+                     </div>
+                  </div>
+                  <button (click)="gameState.set('menu'); $event.stopPropagation()" class="text-green-400 hover:text-[#050510] hover:bg-green-400 font-black border-2 border-green-400 w-8 h-8 sm:w-10 sm:h-10 rounded-none flex items-center justify-center transition-colors title-display shrink-0 shadow-none brutal-border">X</button>
+               </div>
+               
+               <div class="flex flex-col md:flex-row gap-6 w-full h-full min-h-0">
+                  <!-- Sidebar (Channels) -->
+                  <div class="w-full md:w-64 shrink-0 flex flex-col gap-4 border-b md:border-b-0 md:border-r border-green-500/20 pb-4 md:pb-0 pr-0 md:pr-4 overflow-y-auto custom-scrollbar">
+                     <div class="text-xs font-bold text-green-500 uppercase tracking-widest mb-2 data-mono">Corporate Channels</div>
+                     
+                     <div class="flex flex-col gap-2">
+                        <button (click)="selectChannel('general'); $event.stopPropagation()" class="px-4 py-2 text-left font-bold border rounded-none transition-all outline-none"
+                                [ngClass]="watercoolerChannel() === 'general' ? 'bg-green-900/40 border-green-400 text-green-300' : 'bg-transparent border-transparent text-slate-400 hover:bg-[#1E293B] hover:text-slate-200'">
+                           # general
+                        </button>
+                        
+                        @for (chan of watercoolerChannels(); track chan.id) {
+                           <div class="flex items-start gap-1 group relative">
+                               <button (click)="selectChannel(chan.name); $event.stopPropagation()" class="flex-1 px-4 py-2 text-left font-bold border rounded-none transition-all outline-none flex flex-col"
+                                       [ngClass]="watercoolerChannel() === chan.name ? 'bg-green-900/40 border-green-400 text-green-300' : 'bg-transparent border-transparent text-slate-400 hover:bg-[#1E293B] hover:text-slate-200'">
+                                  <span># {{ chan.name }}</span>
+                                  @if (chan.description) {
+                                     <span class="text-[10px] font-normal opacity-70 mt-1 line-clamp-1 w-full">{{ chan.description }}</span>
+                                  }
+                               </button>
+                               @if (chan.creatorId === fb.user()?.uid) {
+                                  <button (click)="deleteChannel(chan.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 absolute right-1 top-2 text-red-500 hover:text-red-400 font-bold p-1 bg-[#1E293B] border border-red-500 hover:bg-red-500/20 brutal-border transition-all transition-opacity text-xs shadow-none">X</button>
+                               }
+                           </div>
+                        }
+                     </div>
+
+                     <div class="mt-4 pt-4 border-t border-green-500/20">
+                        @if (!isCreatingChannel()) {
+                           <button (click)="isCreatingChannel.set(true); $event.stopPropagation()" class="w-full py-2 bg-[#0A0A15] border border-green-500/50 text-green-400 text-xs font-bold uppercase tracking-widest hover:bg-green-900/20 transition-colors brutal-border shadow-none">
+                              + Create Channel
+                           </button>
+                        } @else {
+                           <div class="flex flex-col gap-2 bg-[#0A0A15] p-3 border border-green-500/50 brutal-border shadow-none">
+                              <div class="text-[10px] text-green-400 uppercase font-bold text-center">New Channel</div>
+                              <input type="text" [value]="newChannelName()" (input)="newChannelName.set($any($event.target).value)" placeholder="channel_name" class="w-full bg-[#1E293B] border border-slate-600 rounded-none px-2 py-1 text-slate-200 text-sm font-mono outline-none focus:border-green-400" />
+                              <textarea [value]="newChannelDesc()" (input)="newChannelDesc.set($any($event.target).value)" placeholder="Description (optional)" class="w-full bg-[#1E293B] border border-slate-600 rounded-none px-2 py-1 text-slate-200 text-xs outline-none focus:border-green-400 resize-none h-16 custom-scrollbar"></textarea>
+                              <div class="flex gap-2 mt-1">
+                                 <button (click)="createNewChannel(); $event.stopPropagation()" class="flex-1 bg-green-600 text-black text-xs font-bold py-1 border border-green-400 hover:bg-green-500 transition-colors">Create</button>
+                                 <button (click)="isCreatingChannel.set(false); $event.stopPropagation()" class="flex-1 bg-slate-700 text-white text-xs font-bold py-1 border border-slate-500 hover:bg-slate-600 transition-colors">Cancel</button>
+                              </div>
+                           </div>
+                        }
+                     </div>
+                  </div>
+
+                  <!-- Main Content (Posts) -->
+                  <div class="flex-1 flex flex-col min-h-0 overflow-hidden">
+                     <div class="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-4 pr-2">
+                        @for (post of watercoolerPosts(); track post.id) {
+                           <div class="bg-[#0A0A15] border border-green-500/20 p-4 rounded-none hover:border-green-500/50 transition-colors group">
+                              <div class="flex justify-between items-start mb-2">
+                                 <div class="flex items-center gap-2">
+                                    <div class="w-6 h-6 bg-slate-800 rounded-full border border-slate-600 flex items-center justify-center text-[10px]">🤖</div>
+                                    <span class="font-bold text-slate-300 text-sm">{{ post.authorName }}</span>
+                                    <span class="text-[10px] text-slate-500">in #{{ post.channel }}</span>
+                                 </div>
+                              </div>
+                              <p class="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">{{ post.content }}</p>
+                              
+                              <div class="mt-4 flex items-center gap-4">
+                                 <button (click)="upvoteWatercoolerPost(post.id, post.upvotes); $event.stopPropagation()" class="flex items-center gap-1 text-slate-400 hover:text-green-400 transition-colors">
+                                    <span class="text-lg">⬆️</span>
+                                    <span class="text-xs font-bold font-mono">{{ post.upvotes || 0 }}</span>
+                                 </button>
+                              </div>
+                           </div>
+                        }
+
+                        @if (watercoolerPosts().length === 0) {
+                           <div class="flex-1 flex items-center justify-center border border-dashed border-green-900/50 text-green-700/50 font-mono text-sm uppercase p-8 text-center m-4">
+                              No discussions found in #{{ watercoolerChannel() }}. Be the first to leak the memos.
+                           </div>
+                        }
+                     </div>
+
+                     <!-- Composer -->
+                     <div class="mt-4 pt-4 border-t border-green-500/20 bg-[#050510]">
+                        @if (!fb.user()) {
+                           <div class="flex flex-col items-center gap-2 p-4 border border-rose-500/30 bg-rose-900/10">
+                              <span class="text-xs text-rose-400 uppercase tracking-widest text-center">Auth Required</span>
+                              <button (click)="gameState.set('onboarding'); $event.stopPropagation()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs uppercase tracking-widest transition-all">Sign In to Post</button>
+                           </div>
+                        } @else {
+                           <div class="flex flex-col gap-2 relative">
+                              <textarea [value]="newWatercoolerPost()" (input)="newWatercoolerPost.set($any($event.target).value)"
+                                        class="w-full bg-[#1E293B] border border-green-500/50 rounded-none px-4 py-3 text-slate-200 text-sm outline-none focus:border-green-400 resize-none h-24 custom-scrollbar"
+                                        placeholder="Spill the tea. Wholesome or toxic."></textarea>
+                              <div class="flex justify-between items-center mt-2">
+                                 <div class="flex items-center gap-4">
+                                     <label class="flex items-center gap-2 cursor-pointer text-[10px] text-slate-400 hover:text-slate-300 transition-colors uppercase font-bold">
+                                        <input type="checkbox" [checked]="isAnonymousPost()" (change)="isAnonymousPost.set(!isAnonymousPost())" class="accent-green-500 w-3 h-3" />
+                                        Post Anonymously
+                                     </label>
+                                     <span class="text-[10px] text-slate-500 data-mono uppercase">
+                                        As: {{ isAnonymousPost() ? 'Anonymous Drone' : (userProfile()?.displayName || fb.user()?.displayName || 'Anonymous Drone') }}
+                                     </span>
+                                 </div>
+                                 <button (click)="createWatercoolerPost(); $event.stopPropagation()" class="px-6 py-2 bg-green-600 hover:bg-green-500 text-black font-black uppercase tracking-widest transition-all brutal-border shadow-none text-sm border-2 border-green-400">Post</button>
+                              </div>
+                           </div>
+                        }
+                     </div>
+                  </div>
                </div>
             </div>
           }
@@ -439,6 +567,25 @@
             </div>
           }
 
+          @if (gameState() === 'onboarding') {
+            <div class="absolute inset-0 bg-[#060B14]/95 backdrop-blur z-30 flex flex-col items-center justify-start p-4 sm:p-8 text-white text-center border-y border-cyan-500/50 shadow-[0_0_50px_rgba(6,182,212,0.2)] overflow-y-auto">
+              <div class="m-auto flex flex-col items-center max-w-lg bg-[#0F172A] border border-cyan-500/50 p-6 sm:p-10 rounded-2xl w-full">
+                 <div class="text-4xl sm:text-5xl mb-4">🕵️</div>
+                 <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-cyan-400 mb-2 sm:mb-4 drop-shadow-[0_0_8px_rgba(6,182,212,0.8)] leading-tight title-display uppercase">NEW HIRE ONBOARDING</h2>
+                 <p class="text-sm sm:text-base mb-6 text-slate-300 leading-relaxed font-mono">Select your corporate identity. You can remain anonymous or use official credentials.</p>
+                 
+                 <div class="w-full flex justify-center mb-6">
+                    <input type="text" [value]="onboardingUsername()" (input)="onboardingUsername.set($any($event.target).value)" placeholder="Enter Anonymous Handle..." class="w-full max-w-xs bg-[#1E293B] border border-cyan-500/50 rounded-none px-4 py-3 text-cyan-400 font-bold tracking-wider outline-none focus:border-cyan-400 text-sm sm:text-lg text-center" />
+                 </div>
+
+                 <button (click)="login(); $event.stopPropagation()" class="px-6 sm:px-10 py-3 sm:py-4 bg-transparent text-white rounded-none font-bold hover:bg-[#1E293B] transition-all outline-none border border-slate-600 text-sm md:text-base shrink-0 w-full brutal-border flex items-center justify-center gap-2">
+                    <svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(1, 0, 0, 1, 27.009001, -39.238998)"><path fill="#4285F4" d="M -3.264 51.509 C -3.264 50.719 -3.334 49.969 -3.454 49.239 L -14.754 49.239 L -14.754 53.749 L -8.284 53.749 C -8.574 55.229 -9.424 56.479 -10.684 57.329 L -10.684 60.329 L -6.824 60.329 C -4.564 58.239 -3.264 55.159 -3.264 51.509 Z"/><path fill="#34A853" d="M -14.754 63.239 C -11.514 63.239 -8.804 62.159 -6.824 60.329 L -10.684 57.329 C -11.764 58.049 -13.134 58.489 -14.754 58.489 C -17.884 58.489 -20.534 56.379 -21.484 53.529 L -25.464 53.529 L -25.464 56.619 C -23.494 60.539 -19.444 63.239 -14.754 63.239 Z"/><path fill="#FBBC05" d="M -21.484 53.529 C -21.734 52.809 -21.864 52.039 -21.864 51.239 C -21.864 50.439 -21.724 49.669 -21.484 48.949 L -21.484 45.859 L -25.464 45.859 C -26.284 47.479 -26.754 49.299 -26.754 51.239 C -26.754 53.179 -26.284 54.999 -25.464 56.619 L -21.484 53.529 Z"/><path fill="#EA4335" d="M -14.754 43.989 C -12.984 43.989 -11.404 44.599 -10.154 45.789 L -6.734 42.369 C -8.804 40.429 -11.514 39.239 -14.754 39.239 C -19.444 39.239 -23.494 41.939 -25.464 45.859 L -21.484 48.949 C -20.534 46.099 -17.884 43.989 -14.754 43.989 Z"/></g></svg>
+                    Continue with Google
+                 </button>
+              </div>
+            </div>
+          }
+
           @if (gameState() === 'gameover') {
             <div class="absolute inset-0 bg-[#0A101D]/95 backdrop-blur-md z-50 overflow-y-auto w-full h-full animate-fade-in border border-indigo-500/30 p-2 sm:p-4 custom-scrollbar flex flex-col justify-start">
               <div class="m-auto flex flex-col md:flex-row items-center justify-center max-w-6xl gap-4 sm:gap-6 md:gap-8 py-4 sm:py-8 w-full">
@@ -450,7 +597,7 @@
                     <div class="flex justify-between items-start mb-4 sm:mb-6 border-b border-indigo-500/30 pb-3 sm:pb-4 relative z-10">
                        <div>
                           <h3 class="font-black text-cyan-400 text-[10px] sm:text-xs md:text-sm tracking-widest uppercase mb-0.5 sm:mb-1">Performance Review</h3>
-                          <h2 class="text-white text-lg sm:text-xl md:text-2xl font-bold truncate max-w-[140px] sm:max-w-xs">{{ fb.user()?.displayName || 'Corporate Drone' }}</h2>
+                          <h2 class="text-white text-lg sm:text-xl md:text-2xl font-bold truncate max-w-[140px] sm:max-w-xs">{{ userProfile()?.displayName || fb.user()?.displayName || 'Corporate Drone' }}</h2>
                           <p class="text-indigo-300 text-xs sm:text-sm font-medium">{{ currentTitle() }}</p>
                        </div>
                        <div class="text-right flex flex-col items-end shrink-0">
@@ -707,12 +854,25 @@
             <div class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col p-4 sm:p-8 w-full max-w-2xl mx-auto rounded-none shadow-[10px_10px_0_rgba(6,182,212,0.1)] m-auto h-full sm:h-[90%] border-4 border-cyan-500/40 overflow-y-auto custom-scrollbar">
                
                <div class="flex items-center gap-4 sm:gap-6 border-b-2 border-cyan-500/20 pb-4 sm:pb-6 mb-4 sm:mb-8 relative mt-4 sm:mt-0">
-                   <div class="relative shrink-0">
+                   <div class="relative shrink-0 group">
                       <div class="absolute inset-0 rounded-none bg-cyan-500 blur-lg opacity-40 mix-blend-screen"></div>
-                      <img [src]="fb.user()?.photoURL || 'https://picsum.photos/seed/user/80/80'" alt="Avatar" referrerpolicy="no-referrer" class="w-16 h-16 sm:w-24 sm:h-24 rounded-none border-2 border-cyan-400 relative z-10 grayscale brutal-border"/>
+                      <div class="w-16 h-16 sm:w-24 sm:h-24 bg-[#1E293B] border-2 border-cyan-400 relative z-10 flex items-center justify-center text-4xl sm:text-6xl brutal-border shadow-none">
+                         {{ getAvatarEmoji() }}
+                      </div>
                    </div>
                    <div class="flex-1 min-w-0">
-                      <h2 class="text-xl sm:text-3xl font-black text-white mb-0.5 sm:mb-1 uppercase title-display truncate">{{ fb.user()?.displayName }}</h2>
+                      <h2 class="text-xl sm:text-3xl font-black text-white mb-0.5 sm:mb-1 uppercase title-display truncate flex items-center gap-2 flex-wrap">
+                         @if (isEditingHandle()) {
+                             <div class="flex items-center gap-2">
+                                <input type="text" [value]="editHandleValue()" (input)="editHandleValue.set($any($event.target).value)" class="bg-[#1E293B] border border-cyan-500/50 text-cyan-400 outline-none px-2 py-1 text-sm sm:text-xl w-32 sm:w-48 font-mono shadow-none" />
+                                <button (click)="saveHandle(); $event.stopPropagation()" class="text-xs sm:text-sm bg-cyan-600 text-black px-2 py-1 hover:bg-cyan-500 transition-colors border border-cyan-400">SAVE</button>
+                                <button (click)="isEditingHandle.set(false); $event.stopPropagation()" class="text-xs sm:text-sm bg-slate-700 text-white px-2 py-1 hover:bg-slate-600 transition-colors border border-slate-500">CANCEL</button>
+                             </div>
+                         } @else {
+                             {{ userProfile()?.displayName || fb.user()?.displayName || 'Anonymous Drone' }}
+                             <button (click)="isEditingHandle.set(true); editHandleValue.set(userProfile()?.displayName || fb.user()?.displayName || 'Anonymous Drone'); $event.stopPropagation()" class="text-xs text-cyan-500 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors border border-cyan-500/50 px-2 py-1 rounded-none shadow-none text-[8px] sm:text-[10px] flex items-center justify-center pointer-events-auto">EDIT HANDLE</button>
+                         }
+                      </h2>
                       <p class="text-slate-400 text-xs sm:text-sm font-semibold tracking-wide mb-2 sm:mb-3 data-mono truncate">{{ fb.user()?.email }}</p>
                       <div class="inline-block bg-cyan-900/40 border border-cyan-500 text-cyan-300 font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-none text-[8px] sm:text-xs uppercase tracking-widest shadow-none data-mono max-w-full truncate">
                          RANK: {{ currentTitle() }}
@@ -748,6 +908,18 @@
                      <span class="text-[8px] sm:text-[10px] text-emerald-500 font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase mb-0.5 sm:mb-1 data-mono truncate">PEAK_QUIET_QUIT</span>
                      <span class="text-lg sm:text-2xl font-black text-white title-display">{{userProfile()?.quiet || 0 | number}}</span>
                   </div>
+               </div>
+
+               <h3 class="text-base sm:text-lg font-black text-cyan-400 mb-3 sm:mb-4 flex items-center gap-2 title-display uppercase outline-text">CHOOSE_AVATAR</h3>
+               <div class="grid grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+                  @for (avatar of AVAILABLE_AVATARS; track avatar.id) {
+                     <button (click)="setAvatar(avatar.id); $event.stopPropagation()"
+                             class="bg-[#0A0A15] border-2 rounded-none p-2 sm:p-4 flex items-center justify-center shadow-none brutal-border transition-colors hover:bg-[#1E293B]"
+                             [class.border-cyan-500]="userProfile()?.avatarId === avatar.id"
+                             [class.border-slate-800]="userProfile()?.avatarId !== avatar.id">
+                        <span class="text-2xl sm:text-4xl">{{ avatar.emoji }}</span>
+                     </button>
+                  }
                </div>
 
                <h3 class="text-base sm:text-lg font-black text-amber-400 mb-3 sm:mb-4 flex items-center gap-2 title-display uppercase outline-text">CORPORATE_MILESTONES</h3>
