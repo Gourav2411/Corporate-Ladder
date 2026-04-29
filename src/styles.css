@@ -18,6 +18,12 @@ canvas {
   touch-action: none;
 }
 
+input, textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  pointer-events: auto;
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }

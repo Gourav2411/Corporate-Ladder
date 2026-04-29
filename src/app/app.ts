@@ -1392,6 +1392,13 @@ export class App implements OnDestroy {
   isCreatingPoll = signal(false);
   pollOptions = signal<string[]>(["", ""]);
 
+  // Posts state
+  expandedPosts = signal<Record<string, boolean>>({});
+
+  toggleExpandedPost(postId: string) {
+    this.expandedPosts.update(s => ({ ...s, [postId]: !s[postId] }));
+  }
+
   // Replies state
   activeReplies = signal<Record<string, WatercoolerReply[]>>({});
   showRepliesFor = signal<Record<string, boolean>>({});

@@ -168,7 +168,6 @@
     <div
       class="bg-[#050510] border border-cyan-500/30 rounded-none shadow-[0_0_30px_rgba(6,182,212,0.1)] relative focus:outline-none focus:ring-2 focus:ring-cyan-500 w-full flex flex-col overflow-hidden premium-panel"
       tabindex="0"
-      (keydown.space)="$event.preventDefault(); jump()"
     >
       <!-- Game Header Info -->
       <div
@@ -850,11 +849,25 @@
                       >
                     </div>
                   </div>
-                  <p
-                    class="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed"
-                  >
-                    {{ post.content }}
-                  </p>
+                  <div class="text-slate-200 text-sm whitespace-pre-wrap leading-relaxed">
+                    @if (post.content.length > 250 && !expandedPosts()[post.id]) {
+                      <p>
+                        {{ post.content.substring(0, 250) }}...
+                      </p>
+                      <button (click)="toggleExpandedPost(post.id); $event.stopPropagation()" class="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-2 hover:text-green-300">
+                        + Read More
+                      </button>
+                    } @else {
+                      <p>
+                        {{ post.content }}
+                      </p>
+                      @if (post.content.length > 250) {
+                        <button (click)="toggleExpandedPost(post.id); $event.stopPropagation()" class="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-2 hover:text-green-300">
+                          - Show Less
+                        </button>
+                      }
+                    }
+                  </div>
 
                   @if (post.isPoll && post.pollOptions) {
                   <div class="mt-4 flex flex-col gap-2">
@@ -933,11 +946,17 @@
                           >{{ reply.authorName }}</span
                         >
                       </div>
-                      <p
-                        class="text-slate-300 text-xs sm:text-sm whitespace-pre-wrap"
-                      >
-                        {{ reply.content }}
-                      </p>
+                      <div class="text-slate-300 text-xs sm:text-sm whitespace-pre-wrap">
+                        @if (reply.content.length > 150 && !expandedPosts()[reply.id]) {
+                          <p>{{ reply.content.substring(0, 150) }}...</p>
+                          <button (click)="toggleExpandedPost(reply.id); $event.stopPropagation()" class="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-1 hover:text-green-300">+ Read More</button>
+                        } @else {
+                          <p>{{ reply.content }}</p>
+                          @if (reply.content.length > 150) {
+                            <button (click)="toggleExpandedPost(reply.id); $event.stopPropagation()" class="text-[10px] text-green-400 font-bold uppercase tracking-widest mt-1 hover:text-green-300">- Show Less</button>
+                          }
+                        }
+                      </div>
                     </div>
                     }
 
