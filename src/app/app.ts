@@ -267,9 +267,9 @@ export class App implements OnDestroy {
   emailsSynergized = 0;
   doersFired = 0;
   
-  gameState = signal<'menu' | 'tutorial' | 'playing' | 'story' | 'gameover' | 'account' | 'leaderboard' | 'wardrobe' | 'skills' | 'multiplayer_lobby'>('menu');
+  gameState = signal<'menu' | 'tutorial' | 'playing' | 'story' | 'gameover' | 'account' | 'leaderboard' | 'wardrobe' | 'skills' | 'multiplayer_lobby' | 'require_login'>('menu');
   tutorialStep = signal<number>(1);
-  gameMode = signal<'endless' | 'championship' | 'takeover' | 'quiet'>('endless');
+  gameMode = signal<string>('endless');
   championshipTimeLeft = signal<number>(120);
   currentStoryNode = signal<{title: string, text: string, boss: string} | null>(null);
   promotionsClaimed = new Set<number>();
@@ -313,9 +313,39 @@ export class App implements OnDestroy {
   }
   quests = signal<{type: string, desc: string, target: number, progress: number, reward: number, completed: boolean}[]>([]);
 
-  firebaseInfoMode = signal<'endless'|'championship'|'takeover'|'quiet'|'global'>('endless');
+  firebaseInfoMode = signal<string>('endless');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   leaderboards = signal<any[]>([]);
+
+  AVAILABLE_MODES = [
+    { id: 'endless', name: 'ENDLESS', icon: '📈', desc: 'Standard Grinding' },
+    { id: 'championship', name: 'Q3 SPRINT', icon: '⏱️', desc: 'Timed 2 Minute Run' },
+    { id: 'takeover', name: 'HOSTILE TAKEOVER', icon: '🦈', desc: 'High Chaos Fast Speed' },
+    { id: 'quiet', name: 'QUIET QUITTING', icon: '🤫', desc: 'Slow & Steady' },
+    { id: 'startup', name: 'STARTUP CHAOS', icon: '🚀', desc: 'High Risk High Reward' },
+    { id: 'hardcore', name: 'HARDCORE', icon: '🔥', desc: 'No Margin For Error' },
+    { id: 'enterprise', name: 'ENTERPRISE', icon: '🏢', desc: 'Slow Bureaucracy' },
+    { id: 'agile', name: 'AGILE SPRINT', icon: '🏃', desc: 'Constantly Changing' },
+    { id: 'waterfall', name: 'WATERFALL', icon: '🌊', desc: 'Predictable but Tedious' },
+    { id: 'crunch', name: 'CRUNCH TIME', icon: '⏳', desc: 'Permanent Negative Morale' },
+    { id: 'layoff', name: 'LAYOFF SEASON', icon: '✂️', desc: 'Extremely Hostile' },
+    { id: 'synergy_max', name: 'SYNERGY MAX', icon: '✨', desc: 'Only Synergy Matters' },
+    { id: 'reorg', name: 'REORG SURVIVOR', icon: '🔄', desc: 'Confusing Objectives' },
+    { id: 'pivot', name: 'THE PIVOT', icon: '🔙', desc: 'Rapid Strategy Changes' },
+    { id: 'consulting', name: 'CONSULTING', icon: '💼', desc: 'Billing Hours' },
+    { id: 'crypto', name: 'CRYPTO BRO', icon: '💸', desc: 'Extreme Volatility' },
+    { id: 'ai_bubble', name: 'AI BUBBLE', icon: '🤖', desc: 'Everything is AI' },
+    { id: 'remote', name: 'REMOTE WORK', icon: '🏠', desc: 'Slow, More Emails' },
+    { id: 'rto', name: 'RTO MANDATE', icon: '📉', desc: 'Morale Drops Faster' },
+    { id: 'hybrid', name: 'HYBRID ROLE', icon: '☯️', desc: 'Unpredictable Setup' },
+    { id: 'freemium', name: 'FREEMIUM API', icon: '🪙', desc: 'Wait Times Required' },
+    { id: 'metaverse', name: 'METAVERSE STRATEGY', icon: '🥽', desc: 'Virtually Pointless' },
+    { id: 'outsourced', name: 'OUTSOURCED', icon: '🌐', desc: 'Somebody Else Does It' },
+    { id: 'offshore', name: 'OFFSHORE TEAM', icon: '🏝️', desc: 'Timezone Delays' }
+  ];
+
+  selectedMode = signal<string>('endless');
+
 
   readonly fb = inject(FirebaseService);
   readonly achievements = inject(AchievementService);
@@ -744,11 +774,11 @@ export class App implements OnDestroy {
   async login() {
      try {
          await this.fb.loginWithGoogle();
-     } catch (err: any) {
-         if (err.message && err.message.toLowerCase().includes('domain')) {
+     } catch (err) {
+         if (err instanceof Error && err.message.toLowerCase().includes('domain')) {
              this.addLog("Login failed: Firebase authorized domains must be configured for this deployment URL.", "error");
          } else {
-             this.addLog("Login failed: " + (err.message || String(err)), "error");
+             this.addLog("Login failed: " + (err instanceof Error ? err.message : String(err)), "error");
          }
      }
   }
@@ -812,12 +842,7 @@ export class App implements OnDestroy {
      }
   }
 
-  startGame(mode: 'endless' | 'championship' | 'takeover' | 'quiet' = 'endless') {
-     if (!this.fb.user()) {
-        this.login();
-        return;
-     }
-
+  startGame(mode = 'endless') {
      this.gameMode.set(mode);
      if (typeof window !== 'undefined' && !localStorage.getItem('corp_tutorial_done')) {
          this.tutorialStep.set(1);
@@ -841,7 +866,7 @@ export class App implements OnDestroy {
   }
 
   // --- MULTIPLAYER LOBBY METHODS ---
-  hostSelectedMode = signal<'endless'|'championship'|'takeover'|'quiet'>('endless');
+  hostSelectedMode = signal<string>('endless');
 
   async hostRoom() {
      if (!this.fb.user()) {
@@ -983,15 +1008,28 @@ export class App implements OnDestroy {
      
      this.trackAnalytics('game_start', { game_mode: this.gameMode() });
      
-     if (this.gameMode() === 'takeover') {
+     const m = this.gameMode();
+     if (m === 'takeover') {
          this.baseSpeed = 7;
-         this.addLog("Hostile Takeover Mode! Starting with excessive speed.", 'warning');
-     } else if (this.gameMode() === 'quiet') {
+         this.addLog("Hostile Takeover Mode! Excessive speed.", 'warning');
+     } else if (m === 'quiet') {
          this.baseSpeed = 3;
-         this.addLog("Quiet Quitting Mode. Just keep your head down.", 'info');
+         this.addLog("Quiet Quitting Mode. Keeping head down.", 'info');
+     } else if (m === 'hardcore') {
+         this.baseSpeed = 8;
+         this.addLog("Hardcore Mode. No margin for error.", 'error');
+     } else if (m === 'enterprise') {
+         this.baseSpeed = 2; // slow bureaucracy
+         this.addLog("Enterprise Mode. Extreme bureaucracy incoming.", 'info');
+     } else if (m === 'startup') {
+         this.baseSpeed = 6;
+         this.addLog("Startup Mode. Time to break things.", 'warning');
+     } else if (m === 'remote' || m === 'outsourced') {
+         this.baseSpeed = 3.5;
+         this.addLog(m + " mode activated. Network lag simulated.", 'info');
      } else {
          this.baseSpeed = 4;
-         this.addLog("Started a new corporate run.", 'info');
+         this.addLog(`Started a new run in ${m} mode.`, 'info');
      }
      
      this.emailsSynergized = 0;
@@ -1012,7 +1050,28 @@ export class App implements OnDestroy {
      this.lastTime = performance.now();
   }
 
+  resumeFromRequireLogin() {
+     this.gameState.set('playing');
+     this.isPaused = false;
+     this.lastTime = performance.now();
+     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+       document.activeElement.blur();
+     }
+  }
+
+  async handleRequireLogin() {
+     await this.login();
+     if (this.fb.user()) {
+        this.resumeFromRequireLogin();
+     }
+  }
+
   resumeFromStory() {
+     if (this.promotionsClaimed.size >= 3 && !this.fb.user()) {
+        this.gameState.set('require_login');
+        return;
+     }
+
      this.gameState.set('playing');
      this.isPaused = false;
      this.lastTime = performance.now();
@@ -1244,7 +1303,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
 \nI challenge you to beat my performance metrics directly. See you at the top. :handshake:`;
   }
 
-  async openLeaderboard(mode: 'endless'|'championship'|'takeover'|'quiet'|'global' = 'endless') {
+  async openLeaderboard(mode = 'endless') {
      this.firebaseInfoMode.set(mode);
      this.leaderboards.set([]);
      this.gameState.set('leaderboard');
@@ -1914,7 +1973,7 @@ ${slackStatsStr ? '\n*Key Deliverables:*\n' + slackStatsStr : ''}
       const level = this.levelIndex();
 
       if (isHurdle) {
-        let availableHurdles = this.HURDLES.filter(h => {
+        const availableHurdles = this.HURDLES.filter(h => {
            if (h.type === 'realWork') return level >= 1;
            if (h.type === 'micromanager') return level >= 3;
            if (h.type === 'endlessMeeting') return level >= 4;

@@ -130,7 +130,7 @@ export class FirebaseService {
     return email === 'gourav.k.24@gmail.com' || email === '24gourav11@gmail.com';
   }
 
-  async submitScore(score: number, mode: 'endless' | 'championship' | 'takeover' | 'quiet', currentTitle?: string) {
+  async submitScore(score: number, mode: string, currentTitle?: string) {
     const u = this.user();
     if (!u) return;
 
@@ -175,7 +175,7 @@ export class FirebaseService {
     }
   }
 
-  async getLeaderboard(mode: 'endless' | 'championship' | 'takeover' | 'quiet'): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(mode: string): Promise<LeaderboardEntry[]> {
     try {
       const isAdm = this.isAdmin();
       const q = query(

@@ -250,23 +250,15 @@
                  <p class="text-cyan-300 mb-4 sm:mb-6 md:mb-8 text-xs sm:text-sm md:text-xl font-semibold data-mono uppercase tracking-[0.2em] opacity-80">Climb // Survive // Terminate</p>
                  
                  @if (fb.user()) {
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 md:gap-4 mt-1 sm:mt-2 md:mt-4 w-full">
-                       <button (click)="startGame('endless'); $event.stopPropagation()" class="p-2 sm:p-3 md:py-4 bg-[#0A0A15] border border-cyan-500/50 text-cyan-400 rounded-none hover:bg-cyan-900/20 hover:border-cyan-400 hover:shadow-[inset_0_0_20px_rgba(6,182,212,0.2)] transition-all flex flex-col items-center group shrink-0">
-                          <span class="text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">📈</span>
-                          <span class="font-black title-display text-[10px] sm:text-xs md:text-sm uppercase text-center">ENDLESS</span>
-                       </button>
-                       <button (click)="startGame('championship'); $event.stopPropagation()" class="p-2 sm:p-3 md:py-4 bg-[#0A0A15] border border-purple-500/50 text-purple-400 rounded-none hover:bg-purple-900/20 hover:border-purple-400 hover:shadow-[inset_0_0_20px_rgba(168,85,247,0.2)] transition-all flex flex-col items-center group shrink-0">
-                          <span class="text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">⏱️</span>
-                          <span class="font-black title-display text-[10px] sm:text-xs md:text-sm uppercase text-center">Q3_SPRINT</span>
-                       </button>
-                       <button (click)="startGame('takeover'); $event.stopPropagation()" class="p-2 sm:p-3 md:py-4 bg-[#0A0A15] border border-red-500/50 text-red-400 rounded-none hover:bg-red-900/20 hover:border-red-400 hover:shadow-[inset_0_0_20px_rgba(239,68,68,0.2)] transition-all flex flex-col items-center group shrink-0">
-                          <span class="text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🦈</span>
-                          <span class="font-black title-display text-[10px] sm:text-xs md:text-sm uppercase text-center">TAKEOVER</span>
-                       </button>
-                       <button (click)="startGame('quiet'); $event.stopPropagation()" class="p-2 sm:p-3 md:py-4 bg-[#0A0A15] border border-emerald-500/50 text-emerald-400 rounded-none hover:bg-emerald-900/20 hover:border-emerald-400 hover:shadow-[inset_0_0_20px_rgba(16,185,129,0.2)] transition-all flex flex-col items-center group shrink-0">
-                          <span class="text-xl sm:text-2xl md:text-3xl mb-1 sm:mb-2 grayscale group-hover:grayscale-0 transition-all duration-300">🧘</span>
-                          <span class="font-black title-display text-[10px] sm:text-xs md:text-sm uppercase text-center">QUIET_QUIT</span>
-                       </button>
+                    <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-4 mt-2 w-full max-w-2xl bg-[#0A0A15] border border-cyan-500/30 p-2 sm:p-4 rounded-xl mx-auto">
+                        <select id="mainModeSelect" (change)="selectedMode.set($any($event.target).value)" class="w-full sm:w-2/3 bg-[#1E293B] border border-cyan-500/50 rounded-none px-2 sm:px-3 py-2 sm:py-3 text-cyan-400 font-bold tracking-wider outline-none focus:border-cyan-400 text-sm sm:text-lg uppercase data-mono">
+                           @for (mode of AVAILABLE_MODES; track mode.id) {
+                              <option [value]="mode.id" [selected]="mode.id === selectedMode()">{{ mode.icon }} {{ mode.name }}</option>
+                           }
+                        </select>
+                        <button (click)="startGame(selectedMode()); $event.stopPropagation()" class="w-full sm:w-1/3 py-2 sm:py-3 bg-cyan-600 hover:bg-cyan-500 text-black border border-cyan-400 rounded-none font-black text-sm sm:text-lg uppercase tracking-widest transition-all title-display">
+                           START SPRINT
+                        </button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4 mt-3 sm:mt-4 md:mt-6 w-full">
@@ -315,10 +307,9 @@
                      <div class="flex flex-col gap-1.5 sm:gap-2 text-left bg-[#0F172A] border border-fuchsia-500/30 p-3 sm:p-4 rounded-xl">
                         <label for="gameModeSelect" class="text-fuchsia-300 font-bold uppercase tracking-widest text-[10px] sm:text-xs">Select Game Mode</label>
                         <select id="gameModeSelect" (change)="hostSelectedMode.set($any($event.target).value)" class="bg-[#1E293B] border border-fuchsia-500/50 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-white font-bold tracking-wider outline-none focus:border-fuchsia-400 text-sm sm:text-base">
-                           <option value="endless">Endless</option>
-                           <option value="championship">Q3 Sprint</option>
-                           <option value="takeover">Takeover</option>
-                           <option value="quiet">Quiet Quit</option>
+                           @for (mode of AVAILABLE_MODES; track mode.id) {
+                              <option [value]="mode.id" [selected]="mode.id === hostSelectedMode()">{{ mode.icon }} {{ mode.name }}</option>
+                           }
                         </select>
                      </div>
                      <button (click)="hostRoom(); $event.stopPropagation()" class="px-4 sm:px-6 py-2.5 sm:py-3 md:py-4 bg-fuchsia-600 hover:bg-fuchsia-500 text-white rounded-xl shadow-[0_0_20px_rgba(217,70,239,0.4)] font-black text-sm sm:text-lg md:text-xl uppercase tracking-wider transition-all">
@@ -430,6 +421,20 @@
                  <p class="text-base sm:text-lg md:text-[20px] max-w-2xl italic mb-4 sm:mb-6 text-slate-300 leading-relaxed font-serif">"{{ currentStoryNode()?.text }}"</p>
                  <p class="text-[10px] sm:text-[12px] text-purple-400 font-bold uppercase tracking-widest mb-6 sm:mb-10 data-mono">- {{ currentStoryNode()?.boss }}</p>
                  <button (click)="resumeFromStory(); $event.stopPropagation()" class="px-6 sm:px-10 py-2 sm:py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full font-black shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:scale-105 transition-all outline-none border border-cyan-300 text-sm md:text-lg uppercase tracking-wider shrink-0">Accept Promotion</button>
+              </div>
+            </div>
+          }
+
+          @if (gameState() === 'require_login') {
+            <div class="absolute inset-0 bg-[#060B14]/95 backdrop-blur z-30 flex flex-col items-center justify-start p-4 sm:p-8 text-white text-center border-y border-fuchsia-500/50 shadow-[0_0_50px_rgba(217,70,239,0.2)] overflow-y-auto">
+              <div class="m-auto flex flex-col items-center max-w-lg bg-[#0F172A] border border-fuchsia-500/50 p-6 sm:p-10 rounded-2xl">
+                 <div class="text-4xl sm:text-5xl mb-4 grayscale">🔒</div>
+                 <h2 class="text-xl sm:text-2xl md:text-3xl font-black text-fuchsia-400 mb-2 sm:mb-4 drop-shadow-[0_0_8px_rgba(217,70,239,0.8)] leading-tight title-display uppercase">EXECUTIVE CLEARANCE REQUIRED</h2>
+                 <p class="text-sm sm:text-base mb-6 text-slate-300 leading-relaxed">You've reached a senior executive tier. To continue climbing the ladder, save your progress, and compete on the global leaderboards, you must sign in.</p>
+                 <button (click)="handleRequireLogin(); $event.stopPropagation()" class="px-6 sm:px-10 py-3 sm:py-4 bg-fuchsia-600 text-white rounded-full font-black shadow-[0_0_20px_rgba(217,70,239,0.5)] hover:scale-105 transition-all outline-none border border-fuchsia-400 text-sm md:text-lg uppercase tracking-wider shrink-0 w-full mb-3">Sign In to Continue</button>
+                 @if (fb.user()) {
+                    <button (click)="resumeFromRequireLogin(); $event.stopPropagation()" class="px-6 sm:px-10 py-3 sm:py-4 bg-cyan-600 text-black rounded-full font-black shadow-[0_0_20px_rgba(6,182,212,0.5)] hover:scale-105 transition-all outline-none border border-cyan-400 text-sm md:text-lg uppercase tracking-wider shrink-0 w-full">Resume Sprint</button>
+                 }
               </div>
             </div>
           }
@@ -654,12 +659,15 @@
                   <h2 class="text-2xl sm:text-3xl font-black text-cyan-400 title-display uppercase outline-text">Leaderboards</h2>
                   <button (click)="gameState.set('menu'); $event.stopPropagation()" class="text-cyan-400 hover:text-[#050510] hover:bg-cyan-400 font-black border-2 border-cyan-400 w-8 h-8 sm:w-10 sm:h-10 rounded-none flex items-center justify-center transition-colors title-display shrink-0">X</button>
                </div>
-               <div class="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-8">
-                  <button (click)="openLeaderboard('global')" [ngClass]="firebaseInfoMode() === 'global' ? 'bg-cyan-600 text-black border-cyan-400 shadow-none' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-1.5 sm:py-2 rounded-none font-black transition-all border text-[10px] sm:text-sm md:w-auto uppercase title-display flex-grow sm:flex-grow-0 text-center">🌍 GLOBAL_SYNC</button>
-                  <button (click)="openLeaderboard('endless')" [ngClass]="firebaseInfoMode() === 'endless' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-1.5 sm:py-2 rounded-none font-black transition-all border text-[10px] sm:text-sm uppercase title-display flex-grow sm:flex-grow-0 text-center">ENDLESS_GRIND</button>
-                  <button (click)="openLeaderboard('championship')" [ngClass]="firebaseInfoMode() === 'championship' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-1.5 sm:py-2 rounded-none font-black transition-all border text-[10px] sm:text-sm uppercase title-display flex-grow sm:flex-grow-0 text-center">Q3_SPRINT</button>
-                  <button (click)="openLeaderboard('takeover')" [ngClass]="firebaseInfoMode() === 'takeover' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-1.5 sm:py-2 rounded-none font-black transition-all border text-[10px] sm:text-sm uppercase title-display flex-grow sm:flex-grow-0 text-center">HOSTILE_TAKEOVER</button>
-                  <button (click)="openLeaderboard('quiet')" [ngClass]="firebaseInfoMode() === 'quiet' ? 'bg-cyan-600 text-black border-cyan-400' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-1.5 sm:py-2 rounded-none font-black transition-all border text-[10px] sm:text-sm uppercase title-display flex-grow sm:flex-grow-0 text-center">QUIET_QUIT</button>
+               <div class="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8 items-center bg-[#0A0A15] p-2 sm:p-3 border border-cyan-500/20 rounded-none">
+                  <button (click)="openLeaderboard('global')" [ngClass]="firebaseInfoMode() === 'global' ? 'bg-cyan-600 text-black border-cyan-400 shadow-none' : 'bg-[#0A0A15] text-slate-400 border-slate-700 hover:border-cyan-500'" class="px-3 sm:px-6 py-2 sm:py-3 rounded-none font-black transition-all border text-[10px] sm:text-sm md:w-auto uppercase title-display text-center shrink-0">🌍 GLOBAL_SYNC</button>
+                  <div class="flex-grow flex items-center min-w-[200px]">
+                     <select (change)="openLeaderboard($any($event.target).value)" class="w-full bg-[#1E293B] border border-cyan-500/50 rounded-none px-2 sm:px-3 py-2 sm:py-3 text-cyan-400 font-bold tracking-wider outline-none focus:border-cyan-400 text-[10px] sm:text-sm uppercase data-mono">
+                        @for (mode of AVAILABLE_MODES; track mode.id) {
+                           <option [value]="mode.id" [selected]="mode.id === firebaseInfoMode()">🏅 {{ mode.name }}</option>
+                        }
+                     </select>
+                  </div>
                </div>
                <div class="flex flex-col gap-2 sm:gap-3">
                   @for (row of leaderboards(); track row.userId; let i = $index) {

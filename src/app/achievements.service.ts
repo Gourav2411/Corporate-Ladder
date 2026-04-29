@@ -41,15 +41,32 @@ export class AchievementService {
       if (s) {
         this.stats.set({ ...this.stats(), ...JSON.parse(s) });
       }
-    } catch (e) {
+      const u = localStorage.getItem('company_achievements');
+      if (u) {
+        this.unlocked.set(JSON.parse(u));
+      }
+    } catch {
       // Ignored
+    }
+    // Silently perform an initial check without triggering UI
+    const st = this.stats();
+    const toUnlock: string[] = [];
+    if (st.fired >= 1) toUnlock.push('FIRST_BLOOD');
+    if (st.fired >= 50) toUnlock.push('HR_MENACE');
+    if (st.fired >= 500) toUnlock.push('CORPORATE_ASSASSIN');
+    if (st.coffees >= 100) toUnlock.push('CAFFEINE_ADDICT');
+    if (st.jumps >= 500) toUnlock.push('PLATFORMER');
+    
+    if (toUnlock.length > 0) {
+       this.unlocked.update(list => Array.from(new Set([...list, ...toUnlock])));
     }
   }
 
   saveLocalStats() {
     try {
       localStorage.setItem('company_stats', JSON.stringify(this.stats()));
-    } catch (e) {
+      localStorage.setItem('company_achievements', JSON.stringify(this.unlocked()));
+    } catch {
       // Ignored
     }
   }
@@ -99,6 +116,7 @@ export class AchievementService {
     });
 
     if (changed) {
+      this.saveLocalStats();
       const ach = ACHIEVEMENTS.find(a => a.id === id);
       if (ach) {
         this.onAchievementUnlocked.set(ach);
