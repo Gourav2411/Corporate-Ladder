@@ -649,7 +649,7 @@
             </div>
 
             <div
-              class="mt-4 sm:mt-6 md:mt-8 flex flex-col sm:flex-row gap-2 sm:gap-3 md:gap-4 w-full justify-center max-w-md md:max-w-none shrink-0"
+              class="mt-4 sm:mt-6 md:mt-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 w-full justify-center max-w-md md:max-w-none shrink-0"
             >
               <button
                 (click)="gameState.set('wardrobe'); $event.stopPropagation()"
@@ -662,6 +662,12 @@
                 class="px-3 sm:px-4 md:px-6 py-2 bg-[#1E293B]/80 text-fuchsia-300 border border-fuchsia-800/50 rounded-xl hover:bg-[#334155] hover:text-fuchsia-200 transition-colors uppercase text-[10px] sm:text-xs md:text-sm font-bold tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
               >
                 <span>🧠</span> Leadership Training (Skills)
+              </button>
+              <button
+                (click)="gameState.set('achievements'); $event.stopPropagation()"
+                class="px-3 sm:px-4 md:px-6 py-2 bg-[#1E293B]/80 text-amber-300 border border-amber-800/50 rounded-xl hover:bg-[#334155] hover:text-amber-200 transition-colors uppercase text-[10px] sm:text-xs md:text-sm font-bold tracking-widest flex items-center justify-center gap-1.5 sm:gap-2"
+              >
+                <span>🏆</span> Wall of Fame (Achievements)
               </button>
             </div>
             } @else {
@@ -1128,7 +1134,6 @@
                 (input)="newWatercoolerPost.set($any($event.target).value)"
                 class="w-full flex-1 min-h-[150px] bg-[#1E293B] border border-green-500/50 rounded-none px-4 py-3 text-slate-200 text-base outline-none focus:border-green-400 resize-none custom-scrollbar"
                 placeholder="Spill the tea. Wholesome or toxic."
-                autofocus
               ></textarea>
 
               @if (isCreatingPoll()) {
@@ -2087,6 +2092,109 @@
           [ngClass]="{'text-rose-500 animate-pulse drop-shadow-[4px_4px_0_rgba(244,63,94,0.8)] border-rose-500': championshipTimeLeft() <= 10, 'text-cyan-400 drop-shadow-[2px_2px_0_rgba(6,182,212,0.8)]': championshipTimeLeft() > 10}"
         >
           {{ championshipTimeLeft() }}s
+        </div>
+        } @if (gameState() === 'achievements') {
+        <div
+          class="absolute inset-0 bg-[#050510]/95 backdrop-blur-xl z-50 flex flex-col items-center justify-start p-4 sm:p-8 overflow-y-auto animate-fade-in border-4 border-amber-500/20 custom-scrollbar"
+        >
+          <div
+            class="w-full max-w-4xl flex flex-col md:flex-row justify-between items-center mb-6 sm:mb-8 gap-3 sm:gap-4 mt-2 sm:mt-0"
+          >
+            <h1
+              class="text-2xl sm:text-3xl md:text-4xl font-black text-amber-400 tracking-widest uppercase flex items-center justify-center gap-2 sm:gap-3 title-display outline-text text-center sm:text-left"
+            >
+              WALL_OF_FAME
+            </h1>
+            <div
+              class="text-xl sm:text-2xl font-black flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2 text-amber-400 bg-[#0A0A15] px-4 sm:px-6 py-1.5 sm:py-2 rounded-none brutal-border data-mono w-full sm:w-auto"
+            >
+              <span
+                class="text-[8px] sm:text-[10px] text-slate-400 tracking-widest uppercase truncate max-w-[100px] sm:max-w-[120px]"
+                >UNLOCKED //</span
+              >
+              <span>{{ achievements.unlocked().length }} / {{ achievements.ACHIEVEMENTS.length }}</span>
+            </div>
+          </div>
+
+          <div class="w-full max-w-4xl mb-6 sm:mb-8">
+            <p
+              class="text-amber-400/80 w-full sm:max-w-2xl bg-[#0A0A15] border border-amber-500/50 p-3 sm:p-4 rounded-none leading-relaxed data-mono uppercase tracking-widest text-[10px] sm:text-xs text-center sm:text-left"
+            >
+              The corporate ladder respects accomplishments. Review your milestones and push your limits.
+            </p>
+          </div>
+
+          <!-- Achievements Grid -->
+          <div
+            class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 w-full max-w-4xl pb-8 sm:pb-10"
+          >
+            @for (ach of achievements.ACHIEVEMENTS; track ach.id) {
+            <div
+              class="bg-[#0A0A15] p-4 sm:p-6 rounded-none border-2 transition-all relative overflow-hidden group flex gap-4 items-center"
+              [class.border-amber-400]="achievements.unlocked().includes(ach.id)"
+              [class.border-slate-800]="!achievements.unlocked().includes(ach.id)"
+              [class.opacity-60]="!achievements.unlocked().includes(ach.id)"
+            >
+              <div class="text-4xl sm:text-5xl" [class.grayscale]="!achievements.unlocked().includes(ach.id)">
+                {{ ach.icon }}
+              </div>
+              <div class="flex-1 flex flex-col">
+                <h3 class="text-sm sm:text-base font-black uppercase tracking-widest title-display drop-shadow-md" [class.text-amber-400]="achievements.unlocked().includes(ach.id)" [class.text-slate-400]="!achievements.unlocked().includes(ach.id)">
+                  {{ ach.name }}
+                </h3>
+                <p class="text-xs data-mono text-slate-400 mt-1 uppercase tracking-widest">
+                  {{ ach.description }}
+                </p>
+              </div>
+
+              @if (achievements.unlocked().includes(ach.id)) {
+              <div
+                class="absolute top-2 sm:top-4 right-2 sm:right-4 text-amber-400 drop-shadow-[2px_2px_0_#f59e0b]"
+              >
+                <svg
+                  class="w-5 h-5 sm:w-6 sm:h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+              </div>
+              }
+            </div>
+            }
+          </div>
+
+          <div
+            class="mt-8 sm:mt-12 w-full max-w-4xl flex justify-center pb-10 sm:pb-20"
+          >
+            <button
+              (click)="gameState.set('menu'); $event.stopPropagation()"
+              class="bg-[#0A0A15] hover:bg-slate-800 border border-slate-700 text-slate-400 hover:text-white font-black py-3 sm:py-4 px-8 sm:px-12 rounded-none shadow-none transition-all uppercase tracking-[0.2em] text-xs sm:text-sm outline-none flex items-center gap-2 title-display w-full sm:w-auto justify-center"
+            >
+              <svg
+                class="w-4 h-4 sm:w-5 sm:h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                ></path>
+              </svg>
+              RETURN_TO_SYSTEM
+            </button>
+          </div>
         </div>
         } @if (gameState() === 'skills') {
         <div

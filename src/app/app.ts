@@ -1190,6 +1190,7 @@ export class App implements OnDestroy {
     | "leaderboard"
     | "wardrobe"
     | "skills"
+    | "achievements"
     | "multiplayer_lobby"
     | "require_login"
     | "onboarding"
