@@ -1,0 +1,19 @@
+{
+  "appId": "app.corporateladder.game",
+  "appName": "LinkedOut",
+  "webDir": "dist/app-mobile/browser",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "FirebaseAuthentication": {
+      "skipNativeAuth": false,
+      "providers": ["google.com"]
+    }
+  }
+}
